@@ -213,7 +213,7 @@ class MoodleXMLBuilderApp:
             debug_logger.debug("True/False radio buttons initialized.")
 
             # Button for bug reporting
-            self.buttton_bug_report = tk.Button(self.root, text="Report a Bug", command=self.bug_report)
+            self.buttton_bug_report = tk.Button(self.root, text="Report Issues", command=self.bug_report)
             self.buttton_bug_report.grid(row=10, column=0, padx=10, pady=5, sticky='w')
 
             # Button for adding questions
@@ -312,11 +312,11 @@ class MoodleXMLBuilderApp:
     def bug_report(self):
         try:
             bug_window = tk.Toplevel(self.root)
-            bug_window.title("Bug Report")
+            bug_window.title("Issue Report")
             bug_window.geometry("400x300")
             text_box = tk.Text(bug_window, wrap='word', width=40, height=10)
             text_box.pack(expand=True, fill='both', padx=10, pady=10)
-            label = tk.Label(bug_window, text="Pressing Submit will save your report as an entry in bug_report.txt.\nYou can submit multiple bug reports.", anchor='w')
+            label = tk.Label(bug_window, text="Pressing Submit will save your report as an entry in bug_report.txt.\nYou can submit multiple issues.", anchor='w')
             label.pack(pady=10)
 
             def submit_bug_report():
@@ -326,16 +326,16 @@ class MoodleXMLBuilderApp:
                         with open("bug_report.txt", "a") as file:
                             file.write(f"{bug_report_text}\n---\n")
                     bug_window.destroy()
-                    debug_logger.debug("Bug report submitted.")
+                    debug_logger.debug("Issue report submitted.")
                 else:
-                    messagebox.showwarning("Bug Report", "Please enter a bug report before submitting.")
+                    messagebox.showwarning("Issue Report", "Please enter a issue report before submitting.")
 
             submit_button = tk.Button(bug_window, text="Submit", command=submit_bug_report)
             submit_button.pack(pady=10)
-            debug_logger.debug("Bug report window opened.")
+            debug_logger.debug("Issue report window opened.")
 
         except Exception as e:
-            logging.error("Error opening bug report window", exc_info=True)
+            logging.error("Error opening issue report window", exc_info=True)
             debug_logger.error("UI Error. See error_log.txt for details.", exc_info=True)
 ##Features
 ##The method add_question is used to add a question to the list of questions.
