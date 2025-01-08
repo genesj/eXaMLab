@@ -2,18 +2,14 @@ import tkinter as tk
 from tkinter import messagebox, filedialog, ttk
 import os
 import logging
-
 ##Written by Gene Smith-James
 ##Thank you for testing!
-##I don't know why you're snooping around in the code, but I appreciate it.
-
 ############################################################################################################################################################
-
 ##Logging
 ##This sets up both the root logger and a sub-logger for debug purposes.
 ##Unfortunately, messages that are supposed to only go in debug_log.txt are also going to error_log.txt. 
 ##Don't know why.
-##Tried for an hour to fix, will come back to later.
+############################################################################################################################################################
 logging.basicConfig(filename="error_log.txt", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 debug_logger = logging.getLogger('debug_logger')
 debug_logger.setLevel(logging.DEBUG)
@@ -22,17 +18,15 @@ debug_handler.setLevel(logging.DEBUG)
 debug_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 debug_handler.setFormatter(debug_formatter)
 debug_logger.addHandler(debug_handler)
-
 ############################################################################################################################################################
-
 ##Tooltips
 ##This creates tooltips for input fields.
 ##The tooltips are displayed when the user hovers over the input field.
 ##The tooltips are removed when the user moves the mouse away from the input field.
 ##They take a moment to fade in but immediately disappear when the mouse moves away.
+############################################################################################################################################################
 class Tooltip:
     def __init__(self, widget, text):
-        
         self.widget = widget
         self.text = text
         self.tooltip_window = None
@@ -40,34 +34,27 @@ class Tooltip:
         widget.bind("<Enter>", self.schedule_tooltip)
         widget.bind("<Leave>", self.hide_tooltip)
         debug_logger.debug(f"New tooltip {widget} with text: {text}")
-
     def schedule_tooltip(self, event):
         self.fade_in_id = self.widget.after(500, self.show_tooltip)
-
     def show_tooltip(self):
         x, y, cx, cy = self.widget.bbox("insert")
         x += self.widget.winfo_rootx() + 25
         y += self.widget.winfo_rooty() + 25
-        
         # Create a new toplevel window for the tooltip
         self.tooltip_window = tw = tk.Toplevel(self.widget)
         tw.wm_overrideredirect(True)  # Remove window decorations
         tw.wm_geometry(f"+{x}+{y}")
         tw.wm_attributes("-alpha", 0.0)  # Set initial transparency to 0
-        
         label = tk.Label(tw, text=self.text, justify='left', background='white', relief='solid', borderwidth=1, font=("tahoma", "10", "normal"))
         label.pack(ipadx=1)
         debug_logger.debug(f"Displayed tooltip {self.widget}")
-
         # Start the fade-in effect
         self.fade_in(tw, 0.0)
-
     def fade_in(self, window, alpha):
         alpha += 0.1
         if alpha <= 1.0:
             window.wm_attributes("-alpha", alpha)
             window.after(12, self.fade_in, window, alpha)
-
     def hide_tooltip(self, event):
         if self.fade_in_id:
             self.widget.after_cancel(self.fade_in_id)
@@ -76,23 +63,22 @@ class Tooltip:
             self.tooltip_window.destroy()
             self.tooltip_window = None
             debug_logger.debug(f"Hidden tooltip {self.widget}")
-
 ############################################################################################################################################################
-
 ##Moodle XML Builder
 ##This is the meat of the program.
 ##In order, it initializes the application,
 ##sets up the user interface,
 ##then allows the user to input questions and save them as an XML file.
 ##It also allows the user to edit and delete questions by selecting them from a list.
+############################################################################################################################################################
 class MoodleXMLBuilderApp:
     def __init__(self, root):
         try:
 ##This initializes the application window.
             self.root = root
-            self.root.title("Moodle XML Question Builder")
+            self.root.title("eXaMLab - Moodle XML Utility")
             self.root.geometry("515x520")
-            self.root.resizable(False, False)
+            self.root.resizable(True, True)
 ##These variables are used to track user input.
             self.questions = []
             self.undo_stack = []
@@ -104,7 +90,6 @@ class MoodleXMLBuilderApp:
         except Exception as e:
             logging.error("Error initializing the application", exc_info=True)
             debug_logger.debug("Brutal error. See error_log.txt for details.")
-
     def setup_ui(self):
         try:
 ##This whole section sets up the user interface. The method validate_points is used to stop users from
@@ -120,7 +105,6 @@ class MoodleXMLBuilderApp:
                 except ValueError:
                     return False
             vcmd = (self.root.register(validate_points), '%P')
-
 ##The input field for the category is initialized here. The category in this instance is treated more like a title of this question bank.
 ##As of now, you only get the one.
             self.label_category = tk.Label(self.root, text="Enter Question Bank Category:", anchor='e')
@@ -133,13 +117,13 @@ class MoodleXMLBuilderApp:
 ##Right now, the program is configured to only let you do one overarching category for the entire bank.
 ##In XML files with multiple categories, categories are used as "dividers" of sorts--questions listed after a Category definition are added to that category.
 ##Again, the program can't handle that right now.
-
-##Dropdown for selecting the type of question to add. The options are Multiple Choice, True/False, Short Answer, and Essay.
+##
+##This next section is the dropdown for selecting the type of question to add. The options are Multiple Choice, True/False, Short Answer, and Essay.
 ##The dropdown is handled like an OptionMenu, but it's actually a ComboBox.
 ##I don't really know what the distinction is between the two. I just know that the OptionMenu looks more like I want it to, so we use a dummy one to hide the ComboBox.
+##This section also sets up the various input fields for the different types of questions.
             self.label_question_type = tk.Label(self.root, text="Select Question Type:", anchor='e')
             self.label_question_type.grid(row=1, column=0, padx=10, pady=5, sticky='e')
-            
             self.question_type_var = tk.StringVar(value="Multiple Choice")
             self.dropdown_question_type = ttk.Combobox(self.root, textvariable=self.question_type_var, values=["Multiple Choice", "True/False", "Short Answer", "Essay"])
             self.dropdown_question_type.bind("<<ComboboxSelected>>", lambda event: self.update_ui_for_question_type(self.question_type_var.get()))
@@ -147,52 +131,41 @@ class MoodleXMLBuilderApp:
             self.dropdown_question_type.grid(row=1, column=1, padx=10, pady=5, sticky='w')
             Tooltip(self.dropdown_question_type, "Select the type of question you want to create. The controls will update based on the selected question type.")
             debug_logger.debug("Question type dropdown initialized.")
-
             # Input fields for question name and text
             self.label_question_name = tk.Label(self.root, text="Enter Question Title:", anchor='e')
             self.label_question_name.grid(row=2, column=0, padx=10, pady=5, sticky='e')
-            
             self.entry_question_name = tk.Entry(self.root, width=50)
             self.entry_question_name.grid(row=2, column=1, padx=10, pady=5)
             Tooltip(self.entry_question_name, "Enter a title for the question. This will be displayed as the Question Name in Moodle.\n\nNote that Question Name is NOT the same thing as the text of the question. Question Names are purely cosmetic and only seeen by the instructor.")
             debug_logger.debug("Question name input field initialized.")
-            
             self.label_question_text = tk.Label(self.root, text="Enter Question Text:", anchor='e')
             self.label_question_text.grid(row=3, column=0, padx=10, pady=5, sticky='e')
-            
             self.entry_question_text = tk.Entry(self.root, width=50)
             self.entry_question_text.grid(row=3, column=1, padx=10, pady=5)
             Tooltip(self.entry_question_text, "Enter the text of the question.")
             debug_logger.debug("Question text input field initialized.")
-            
             # Input for point value of the question
             self.label_points = tk.Label(self.root, text="Point Value (default is 1):", anchor='e')
             self.label_points.grid(row=4, column=0, padx=10, pady=5, sticky='e')
-            
             self.entry_points = tk.Entry(self.root, width=10, validate='key', validatecommand=vcmd)
             self.entry_points.grid(row=4, column=1, sticky='w', padx=10, pady=5)
             self.entry_points.insert(0, "1")  # Default value for points is 1
             Tooltip(self.entry_points, "Enter the point value for this question.\n\nThis value is used as the default grade for the question in Moodle. This isn't really necessary to set, depending on how your quiz is going to be configured.\nMoodle figures out how many points each question should be worth based on the Maximum Grade you set for the quiz.\n\nIn short, this is purely personal preference.")
             debug_logger.debug("Points input field initialized.")
-
             # Input fields for multiple choice questions
             self.label_mcq_options = tk.Label(self.root, text="Possible Choices:", anchor='e')
             self.label_mcq_options.grid(row=5, column=0, padx=10, pady=5, sticky='e')
-            
             self.entry_mcq_options = tk.Entry(self.root, width=50)
             self.entry_mcq_options.grid(row=5, column=1, padx=10, pady=5)
             Tooltip(self.entry_mcq_options, "Enter the options for the multiple-choice question, separated by commas. Choices will be shuffled inside Moodle.\n\nExample: Choice 1,Choice 2,Choice 3,Choice 4\nDo not include spaces after commas. Spaces within choices are allowed.")
             debug_logger.debug("Multiple choice options input field initialized.")
-
             # Correct options for multiple choice questions
             self.label_correct_option = tk.Label(self.root, text="Correct Answer(s)", anchor='e')
             self.label_correct_option.grid(row=6, column=0, padx=10, pady=5, sticky='e')
-            
             self.entry_correct_option = tk.Entry(self.root, width=50)
             self.entry_correct_option.grid(row=6, column=1, padx=10, pady=5)
             Tooltip(self.entry_correct_option, "Enter the number(s) corresponding to the correct option(s), separated by commas.\n\nExample: 1,3\nThis would mean the first and third options are correct.")
             debug_logger.debug("Correct option input field initialized.")
-
             # Input field for correct short answer
             self.label_short_answer_correct = tk.Label(self.root, text="Enter Correct Short Answer:", anchor='e')
             self.label_short_answer_correct.grid(row=7, column=0, padx=10, pady=5, sticky='e')
@@ -211,14 +184,12 @@ class MoodleXMLBuilderApp:
             Tooltip(self.radio_true, "Select if the answer is True.")
             Tooltip(self.radio_false, "Select if the answer is False.")
             debug_logger.debug("True/False radio buttons initialized.")
-
             # Button for bug reporting
-            self.buttton_bug_report = tk.Button(self.root, text="Report Issues", command=self.bug_report)
-            self.buttton_bug_report.grid(row=10, column=0, padx=10, pady=5, sticky='w')
-
+            #self.buttton_bug_report = tk.Button(self.root, text="Report Issues", command=self.bug_report)
+            #self.buttton_bug_report.grid(row=10, column=0, padx=10, pady=5, sticky='w')
             # Button for adding questions
             self.button_add_question = tk.Button(self.root, text="Add Question", command=self.add_question)
-            self.button_add_question.grid(row=10, column=0, padx=10, pady=5, sticky='e')
+            self.button_add_question.grid(row=10, column=0, padx=10, pady=5, sticky='w')
             Tooltip(self.button_add_question, "Click to add the current question to your question bank.")
             debug_logger.debug("Add question button initialized.")
             # Button for editing questions
@@ -231,12 +202,12 @@ class MoodleXMLBuilderApp:
             self.button_delete_question.grid(row=10, column=1, padx=5, pady=5, sticky='e')
             Tooltip(self.button_delete_question, "Click to delete the selected questions from the list.")
             debug_logger.debug("Delete question button initialized.")
-            
             # Listbox to display all added questions
             self.listbox_questions = tk.Listbox(self.root, selectmode=tk.EXTENDED)
-            self.listbox_questions.grid(row=11, column=0, columnspan=3, padx=10, pady=10, sticky='we')
+            self.listbox_questions.grid(row=11, column=0, columnspan=3, padx=10, pady=10, sticky='nsew')
             self.listbox_questions.bind('<<ListboxSelect>>', self.on_question_select)
-
+            # Adjust row weight for listbox to stretch
+            self.root.grid_rowconfigure(11, weight=1)
             # Adjust column weight for listbox to stretch
             self.root.grid_columnconfigure(0, weight=1)
             self.root.grid_columnconfigure(1, weight=1)
@@ -271,7 +242,6 @@ class MoodleXMLBuilderApp:
             self.label_tf_answer.grid()
             self.radio_true.grid()
             self.radio_false.grid()
-
             # Hide the specific widgets by removing their content or visibility
             self.label_mcq_options.grid_remove()
             self.entry_mcq_options.grid_remove()
@@ -282,7 +252,6 @@ class MoodleXMLBuilderApp:
             self.label_tf_answer.grid_remove()
             self.radio_true.grid_remove()
             self.radio_false.grid_remove()
-
             # Show the relevant widgets based on the selected question type
             if question_type == "Multiple Choice":
                 self.label_mcq_options.grid()
@@ -337,7 +306,6 @@ class MoodleXMLBuilderApp:
         except Exception as e:
             logging.error("Error opening issue report window", exc_info=True)
             debug_logger.error("UI Error. See error_log.txt for details.", exc_info=True)
-##Features
 ##The method add_question is used to add a question to the list of questions.
 ##The method clear_entries is used to clear all input fields.
 ##The method delete_selected_questions is used to delete selected questions from the list of questions.
@@ -428,7 +396,6 @@ class MoodleXMLBuilderApp:
             self.clear_entries()  # Clear input fields
         except Exception as e:
             logging.error("Error adding question", exc_info=True)
-
     def clear_entries(self):
         try:
             # Clear all the input fields to prepare for the next question
@@ -444,7 +411,6 @@ class MoodleXMLBuilderApp:
             debug_logger.debug("Cleared all input fields.")
         except Exception as e:
             logging.error("Error clearing entries", exc_info=True)
-
     def delete_selected_questions(self):
         try:
             # Delete the selected questions from the listbox and the questions list
@@ -457,7 +423,6 @@ class MoodleXMLBuilderApp:
             self.on_question_select(None)
         except Exception as e:
             logging.error("Error deleting selected questions", exc_info=True)
-
     def update_question_list(self):
         try:
             # Update the listbox to reflect the current list of questions
@@ -468,17 +433,14 @@ class MoodleXMLBuilderApp:
                 self.listbox_questions.insert(tk.END, display_text)  # Add the question to the listbox
         except Exception as e:
             logging.error("Error updating question list", exc_info=True)
-
     def edit_question(self):
         try:
             selected_indices = list(self.listbox_questions.curselection())
             if len(selected_indices) != 1:
                 messagebox.showwarning("Edit Error", "Please select exactly one question to edit.")
                 return
-
             index = selected_indices[0]
             question = self.questions[index]
-
             # Populate the fields with the selected question's data
             self.question_type_var.set(question['type'])
             self.update_ui_for_question_type(question['type'])
@@ -488,7 +450,6 @@ class MoodleXMLBuilderApp:
             self.entry_question_text.insert(0, question['text'])
             self.entry_points.delete(0, tk.END)
             self.entry_points.insert(0, str(question['points']))
-
             if question['type'] == "Multiple Choice":
                 self.entry_mcq_options.delete(0, tk.END)
                 self.entry_mcq_options.insert(0, ', '.join(question['options']))
@@ -499,50 +460,41 @@ class MoodleXMLBuilderApp:
             elif question['type'] == "Short Answer":
                 self.entry_short_answer_correct.delete(0, tk.END)
                 self.entry_short_answer_correct.insert(0, question['correct_answer'])
-
             # Set edit mode to true and remember the index being edited
             self.edit_mode = True
             self.edit_index = index
             self.button_delete_question.config(state=tk.DISABLED)
         except Exception as e:
             logging.error("Error editing question", exc_info=True)
-
     def save_as_xml(self):
         try:
             # Save all questions to an XML file
             if not self.questions:
                 messagebox.showwarning("Save Error", "No questions to save.")
                 return
-            
             # Prompt user for file save location
             file_path = filedialog.asksaveasfilename(defaultextension=".xml", filetypes=[("XML files", "*.xml")])
             if not file_path:
                 return
-
             # Create XML structure and save it
             xml_content = self.create_xml_content()
             debug_logger.debug("Saving XML Structure.")
-
             # Write the XML content to the selected file
             with open(file_path, 'w', encoding='utf-8') as file:
                 file.write(xml_content)
-
             messagebox.showinfo("Save Successful", f"Questions saved to {os.path.basename(file_path)}")
             debug_logger.debug(f"Questions saved to {os.path.basename(file_path)}")
         except Exception as e:
             logging.error("Error saving questions as XML", exc_info=True)
             debug_logger.debug("Save Error. See error_log.txt for details.")
-
     def create_xml_content(self):
         try:
             # Create XML content string
             xml_content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<quiz>\n"
-
             # Add category to the XML if specified
             category_name = self.entry_category.get().strip()
             if category_name:
                 xml_content += f"  <question type=\"category\">\n    <category>\n      <text>$course$/{category_name}</text>\n    </category>\n  </question>\n"
-
             # Add each question to the XML content
             for question in self.questions:
                 if question['type'] == "Multiple Choice":
@@ -559,12 +511,10 @@ class MoodleXMLBuilderApp:
                 elif question['type'] == "Essay":
                     xml_content += f"  <question type=\"essay\">\n    <name>\n      <text>{question['name']}</text>\n    </name>\n    <questiontext format=\"html\">\n      <text><![CDATA[{question['text']}]]></text>\n    </questiontext>\n    <defaultgrade>{question['points']}</defaultgrade>\n  </question>\n"
             xml_content += "</quiz>"
-
             return xml_content
         except Exception as e:
             logging.error("Error creating XML content", exc_info=True)
             return ""
-
 if __name__ == "__main__":
     try:
         root = tk.Tk()
