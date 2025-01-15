@@ -22,12 +22,12 @@
 </p>
 <h2>Requirements</h2>
 <p>Python 3.12.x and above is required to run the program. Download Python at <a href="https://www.python.org/downloads/">python.org</a> or from the Microsoft Store.<br>
+The .exe file comes packaged with the relevant Python version, and averts the need to install anything.<br>
 There are no external dependencies. All modules used are part of the Python standard library.</p>
-<!--
 <h2>Installation</h2>
 <p>
+Windows users are able to install the latest version from the Releases tab and launch examlab.exe. MacOS and Linux users, at this time, must run examlab.py manually.
 </p>
--->
 <h2>Features</h2>
 <p>
   <ul>
