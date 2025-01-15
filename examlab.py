@@ -10,10 +10,10 @@ import logging
 ##Unfortunately, messages that are supposed to only go in debug_log.txt are also going to error_log.txt. 
 ##Don't know why.
 ############################################################################################################################################################
-logging.basicConfig(filename="error_log.txt", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
+#logging.basicConfig(filename="error_log.txt", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 debug_logger = logging.getLogger('debug_logger')
 debug_logger.setLevel(logging.DEBUG)
-debug_handler = logging.FileHandler('debug_log.txt')
+debug_handler = logging.FileHandler('log.txt')
 debug_handler.setLevel(logging.DEBUG)
 debug_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 debug_handler.setFormatter(debug_formatter)

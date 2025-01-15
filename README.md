@@ -8,7 +8,7 @@
 </p>
 <h2>What is Moodle XML?</h2>
 <p>
-  <b>MoodleXML</b> is a Moodle-specific format for importing and exporting questions to be used with the Quiz module. Unlike other question languages you can use within Moodle, mXML has the benefit of supporting almost any question type.
+  <b>MoodleXML</b> is a Moodle-specific format for writing questions to be used with the Quiz module.
   <br><br>
   Read more on MoodleDocs:
   <ul>
@@ -23,8 +23,11 @@
 <h2>Requirements</h2>
 <p>Python 3.12.x and above is required to run the program. Download Python at <a href="https://www.python.org/downloads/">python.org</a> or from the Microsoft Store.<br>
 There are no external dependencies. All modules used are part of the Python standard library.</p>
+<!--
 <h2>Installation</h2>
-
+<p>
+</p>
+-->
 <h2>Features</h2>
 <p>
   <ul>
@@ -40,8 +43,10 @@ There are no external dependencies. All modules used are part of the Python stan
 <h2>Limitations</h2>
 <p>
 Images cannot be embedded into questions built with eXaMLab. To embed images, you must edit questions after importing your .XML file.
-<br>
-<h3>Unsupported Question Formats</h3>
+</p>
+<p>
+You cannot build these question types in eXaMLab:
+</p>
 <ul>
 <li>
 Drag and Drop
@@ -61,4 +66,3 @@ Select Missing Words
 <li>
 Numerical
 </li>
-</p>
