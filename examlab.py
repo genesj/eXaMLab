@@ -5,6 +5,16 @@ import logging
 ##Written by Gene Smith-James
 ##Thank you for testing!
 ############################################################################################################################################################
+##Housekeeping
+############################################################################################################################################################
+basedir = os.path.dirname(__file__)
+try:
+    from ctypes import windll  # Only exists on Windows.
+    myappid = 'xmlab'  # Arbitrary
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except ImportError:
+    pass
+############################################################################################################################################################
 ##Logging
 ##This sets up both the root logger and a sub-logger for debug purposes.
 ##Unfortunately, messages that are supposed to only go in debug_log.txt are also going to error_log.txt. 
@@ -18,6 +28,7 @@ debug_handler.setLevel(logging.DEBUG)
 debug_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 debug_handler.setFormatter(debug_formatter)
 debug_logger.addHandler(debug_handler)
+
 ############################################################################################################################################################
 ##Tooltips
 ##This creates tooltips for input fields.
@@ -79,6 +90,8 @@ class MoodleXMLBuilderApp:
             self.root.title("eXaMLab - Moodle XML Utility")
             self.root.geometry("515x520")
             self.root.resizable(True, True)
+            self.root.minsize(515, 520)
+            self.root.iconbitmap(os.path.join(basedir, "icon.ico"))
 ##These variables are used to track user input.
             self.questions = []
             self.undo_stack = []
@@ -86,10 +99,11 @@ class MoodleXMLBuilderApp:
             self.edit_index = None
 ##This initializes the user interface.
             self.setup_ui()
+            
             debug_logger.debug("User interface setup complete")
         except Exception as e:
             logging.error("Error initializing the application", exc_info=True)
-            debug_logger.debug("Brutal error. See error_log.txt for details.")
+            debug_logger.debug("Brutal error. Cannot initialize application.")
     def setup_ui(self):
         try:
 ##This whole section sets up the user interface. The method validate_points is used to stop users from
