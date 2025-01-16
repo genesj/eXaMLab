@@ -1,7 +1,6 @@
 # eXaMLab
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/f44693e4-e880-46b9-92c4-7b9ff556396f" /><br>
-  <i>The UI in action.</i>
+  <img src="https://github.com/user-attachments/assets/f44693e4-e880-46b9-92c4-7b9ff556396f" />
 </p>
 <p>
   eXaMLab is a Python utility that lets you write quizzes for Moodle without ever having to open a web browser, follow any hyper-specific conventions, or press any keyboard button more unusual than the comma key.
@@ -38,6 +37,8 @@ Windows users are able to install the latest version from the Releases tab and l
     <li>Short Answer</li>
     <li>Essay</li>
   </ol>
+  <li>Question list GUI grows as you build your quiz; plainly see and edit questions you made earlier in the test bank</li>
+  <li>Imports directly into Moodle as its own question category (name defined by you)</li>
   </ul>
 </p>
 <h2>Limitations</h2>
@@ -66,3 +67,6 @@ Select Missing Words
 <li>
 Numerical
 </li>
+</ul>
+<h2>How do I use it?</h2>
+<p>Every input field in eXaMLab has tooltips that appear when you hover over it - the readme is built-in to the program.</p>
