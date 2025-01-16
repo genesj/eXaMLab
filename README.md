@@ -1,6 +1,7 @@
 # eXaMLab
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/f44693e4-e880-46b9-92c4-7b9ff556396f" />
+  <img src="https://github.com/user-attachments/assets/ebc66598-33e7-45d5-81a2-c241bd1d54f6"/>
+
 </p>
 <p>
   eXaMLab is a Python utility that lets you write quizzes for Moodle without ever having to open a web browser, follow any hyper-specific conventions, or press any keyboard button more unusual than the comma key.
