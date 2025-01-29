@@ -4,7 +4,7 @@
 
 </p>
 <p>
-  eXaMLab is a Python utility that lets you write quizzes for Moodle without ever having to open a web browser, follow any hyper-specific conventions, or press any keyboard button more unusual than the comma key.
+  eXaMLab is a Python utility that lets you write basic quizzes for Moodle without ever having to open a web browser, follow any hyper-specific conventions, or press any keyboard button more unusual than the comma key.
 </p>
 <h2>What is Moodle XML?</h2>
 <p>
@@ -21,8 +21,8 @@
   </ul>
 </p>
 <h2>Requirements</h2>
-<p>The prepackaged versions for each OS come packaged with the relevant Python version, and averts the need to install anything.<br>
-If running the script manually, Python 3.12.x and above is required. Download Python at <a href="https://www.python.org/downloads/">python.org</a><br>
+<p>The prepackaged versions under the Releases tab are fully portable, and avert the need to install anything.<br>
+If running the script manually, which is not recommended, Python 3.12.x and above is required. Download Python at <a href="https://www.python.org/downloads/">python.org</a><br>
 There are no external dependencies. All modules used are part of the Python standard library.</p>
 <h2>Installation</h2>
 <p>
