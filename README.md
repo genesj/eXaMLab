@@ -26,7 +26,8 @@ The .exe file comes packaged with the relevant Python version, and averts the ne
 There are no external dependencies. All modules used are part of the Python standard library.</p>
 <h2>Installation</h2>
 <p>
-Windows users are able to install the latest version from the Releases tab and launch examlab.exe. MacOS and Linux users, at this time, must run examlab.py manually.
+<ul><li>Windows users: install the latest version from the Releases tab and launch eXaMLab.exe</li>
+<li>MacOS users: install the latest version from the releases tab and launch eXaMLab from \eXaMLab.app\Contents\MacOs</li></ul>
 </p>
 <h2>Features</h2>
 <p>
