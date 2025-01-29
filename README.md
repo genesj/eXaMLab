@@ -21,8 +21,8 @@
   </ul>
 </p>
 <h2>Requirements</h2>
-<p>Python 3.12.x and above is required to run the program. Download Python at <a href="https://www.python.org/downloads/">python.org</a> or from the Microsoft Store.<br>
-The .exe file comes packaged with the relevant Python version, and averts the need to install anything.<br>
+<p>The prepackaged versions for each OS come packaged with the relevant Python version, and averts the need to install anything.<br>
+If running the script manually, Python 3.12.x and above is required. Download Python at <a href="https://www.python.org/downloads/">python.org</a><br>
 There are no external dependencies. All modules used are part of the Python standard library.</p>
 <h2>Installation</h2>
 <p>
