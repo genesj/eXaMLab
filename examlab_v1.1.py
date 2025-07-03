@@ -125,7 +125,7 @@ class MoodleXMLBuilderApp:
             debug_logger.debug("Question name input field initialized.")
             self.label_question_text = tk.Label(self.root, text="Enter Question Text:", anchor='e')
             self.label_question_text.grid(row=3, column=0, padx=10, pady=5, sticky='e')
-            self.entry_question_text = tk.Text(self.root, width=50, height=12)
+            self.entry_question_text = tk.Text(self.root, width=50, height=4)
             self.entry_question_text.grid(row=3, column=1, padx=10, pady=5)
             Tooltip(self.entry_question_text, "Enter the text of the question.")
             debug_logger.debug("Question text input field initialized.")
@@ -278,7 +278,7 @@ class MoodleXMLBuilderApp:
         try:
             question_type = self.question_type_var.get()
             question_name = self.entry_question_name.get()
-            question_text = self.entry_question_text.get()
+            question_text = self.entry_question_text.get("1.0", tk.END).strip()
             points = self.entry_points.get()
             points = float(points) if points else 1.0  # Default to 1 point if not specified
             if question_type == "Multiple Choice":
@@ -361,7 +361,7 @@ class MoodleXMLBuilderApp:
     def clear_entries(self):
         try:
             self.entry_question_name.delete(0, tk.END)
-            self.entry_question_text.delete(0, tk.END)
+            self.entry_question_text.delete("1.0", tk.END)
             self.entry_points.delete(0, tk.END)
             self.entry_points.insert(0, "1")
             self.entry_mcq_options.delete(0, tk.END)
@@ -403,8 +403,8 @@ class MoodleXMLBuilderApp:
             self.update_ui_for_question_type(question['type'])
             self.entry_question_name.delete(0, tk.END)
             self.entry_question_name.insert(0, question['name'])
-            self.entry_question_text.delete(0, tk.END)
-            self.entry_question_text.insert(0, question['text'])
+            self.entry_question_text.delete("1.0", tk.END)
+            self.entry_question_text.insert("1.0", question['text'])
             self.entry_points.delete(0, tk.END)
             self.entry_points.insert(0, str(question['points']))
             if question['type'] == "Multiple Choice":
