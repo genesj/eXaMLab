@@ -2,7 +2,7 @@ import os
 import logging
 import platform
 import tkinter as tk
-from tkinter import messagebox, filedialog, ttk
+from tkinter import messagebox, filedialog, ttk, Text
 ## Written by Gene Smith-James
 ## Version 1.1 - MacOS compatibility
 basedir = os.path.dirname(__file__)
@@ -73,10 +73,13 @@ class MoodleXMLBuilderApp:
         try:
             self.root = root
             self.root.title("eXaMLab - Moodle XML Utility")
-            self.root.geometry("600x520")
+            #self.root.geometry("600x520")
             self.root.resizable(True, True)
             self.root.minsize(600, 520)
-            self.root.iconbitmap(os.path.join(basedir, "icon.ico"))
+            if platform.system() == "Windows":
+                self.root.iconbitmap(os.path.join(basedir, "icon.ico"))
+            else:
+                pass
             self.questions = []
             self.undo_stack = []
             self.edit_mode = False
@@ -108,7 +111,7 @@ class MoodleXMLBuilderApp:
             self.label_question_type = tk.Label(self.root, text="Select Question Type:", anchor='e')
             self.label_question_type.grid(row=1, column=0, padx=10, pady=5, sticky='e')
             self.question_type_var = tk.StringVar(value="Multiple Choice")
-            self.dropdown_question_type = ttk.Combobox(self.root, textvariable=self.question_type_var, values=["Multiple Choice", "True/False", "Short Answer", "Essay"])
+            self.dropdown_question_type = ttk.Combobox(self.root, textvariable=self.question_type_var, values=["Multiple Choice", "True/False", "Short Answer", "Essay", "Cloze"])
             self.dropdown_question_type.bind("<<ComboboxSelected>>", lambda event: self.update_ui_for_question_type(self.question_type_var.get()))
             self.dropdown_question_type.state(["readonly"])  # Make it read-only to simulate an OptionMenu behavior
             self.dropdown_question_type.grid(row=1, column=1, padx=10, pady=5, sticky='w')
@@ -122,7 +125,7 @@ class MoodleXMLBuilderApp:
             debug_logger.debug("Question name input field initialized.")
             self.label_question_text = tk.Label(self.root, text="Enter Question Text:", anchor='e')
             self.label_question_text.grid(row=3, column=0, padx=10, pady=5, sticky='e')
-            self.entry_question_text = tk.Entry(self.root, width=50)
+            self.entry_question_text = tk.Text(self.root, width=50, height=12)
             self.entry_question_text.grid(row=3, column=1, padx=10, pady=5)
             Tooltip(self.entry_question_text, "Enter the text of the question.")
             debug_logger.debug("Question text input field initialized.")
@@ -234,9 +237,14 @@ class MoodleXMLBuilderApp:
                 debug_logger.debug("QuestionType Short Answer selected.")
             elif question_type == "Essay":
                 debug_logger.debug("QuestionType Essay selected.")
+            elif question_type == "Cloze":
+                debug_logger.debug("QuestionType Cloze selected.")
         except Exception as e:
             logging.error("Error updating UI for question type", exc_info=True)
             debug_logger.debug("UI Error. See error_log.txt for details.")
+
+
+
 ##Bug Reporting currently dummied out
     def bug_report(self):
         try:
@@ -263,6 +271,9 @@ class MoodleXMLBuilderApp:
         except Exception as e:
             logging.error("Error opening issue report window", exc_info=True)
             debug_logger.error("UI Error. See error_log.txt for details.", exc_info=True)
+
+
+
     def add_question(self):
         try:
             question_type = self.question_type_var.get()
@@ -317,6 +328,17 @@ class MoodleXMLBuilderApp:
                 if question_name and question_text:
                     question = {
                         "type": "Essay",
+                        "name": question_name,
+                        "text": question_text,
+                        "points": points
+                    }
+                else:
+                    messagebox.showwarning("Input Error", "Please enter the question name and text.")
+                    return
+            elif question_type == "Cloze":
+                if question_name and question_text:
+                    question = {
+                        "type": "Cloze",
                         "name": question_name,
                         "text": question_text,
                         "points": points
@@ -437,6 +459,8 @@ class MoodleXMLBuilderApp:
                     xml_content += f"  <question type=\"shortanswer\">\n    <name>\n      <text>{question['name']}</text>\n    </name>\n    <questiontext format=\"html\">\n      <text><![CDATA[{question['text']}]]></text>\n    </questiontext>\n    <defaultgrade>{question['points']}</defaultgrade>\n    <answer fraction=\"100\">\n      <text>{question['correct_answer']}</text>\n    </answer>\n  </question>\n"
                 elif question['type'] == "Essay":
                     xml_content += f"  <question type=\"essay\">\n    <name>\n      <text>{question['name']}</text>\n    </name>\n    <questiontext format=\"html\">\n      <text><![CDATA[{question['text']}]]></text>\n    </questiontext>\n    <defaultgrade>{question['points']}</defaultgrade>\n  </question>\n"
+                elif question['type'] == "Cloze":
+                    xml_content += f" <question type=\"cloze\">\n    <name>\n      <text>{question['name']}</text>\n    </name>\n    <questiontext format=\"html\">\n      <text><![CDATA[{question['text']}]]></text>\n    </questiontext>\n    <defaultgrade>{question['points']}</defaultgrade>\n  </question>\n"
             xml_content += "</quiz>"
             return xml_content
         except Exception as e:
