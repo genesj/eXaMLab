@@ -69,6 +69,9 @@ Select Missing Words
 <li>
 Numerical
 </li>
+<li>
+Cloze
+</li>
 </ul>
 <h2>How do I use it?</h2>
 <p>Every input field in eXaMLab has tooltips that appear when you hover over it - the readme is built-in to the program.</p>
