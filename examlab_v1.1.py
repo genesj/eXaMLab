@@ -245,32 +245,32 @@ class MoodleXMLBuilderApp:
 
 
 
-##Bug Reporting currently dummied out
-    def bug_report(self):
-        try:
-            bug_window = tk.Toplevel(self.root)
-            bug_window.title("Issue Report")
-            bug_window.geometry("400x300")
-            text_box = tk.Text(bug_window, wrap='word', width=40, height=10)
-            text_box.pack(expand=True, fill='both', padx=10, pady=10)
-            label = tk.Label(bug_window, text="Pressing Submit will save your report as an entry in bug_report.txt.\nYou can submit multiple issues.", anchor='w')
-            label.pack(pady=10)
-            def submit_bug_report():
-                bug_report_text = text_box.get("1.0", tk.END).strip()
-                if bug_report_text:
-                    with open("bug_report.txt", "a", encoding='utf-8') as file:
-                        with open("bug_report.txt", "a") as file:
-                            file.write(f"{bug_report_text}\n---\n")
-                    bug_window.destroy()
-                    debug_logger.debug("Issue report submitted.")
-                else:
-                    messagebox.showwarning("Issue Report", "Please enter a issue report before submitting.")
-            submit_button = tk.Button(bug_window, text="Submit", command=submit_bug_report)
-            submit_button.pack(pady=10)
-            debug_logger.debug("Issue report window opened.")
-        except Exception as e:
-            logging.error("Error opening issue report window", exc_info=True)
-            debug_logger.error("UI Error. See error_log.txt for details.", exc_info=True)
+##Bug Report button, commits to a text file
+   # def bug_report(self):
+    #    try:
+     #       bug_window = tk.Toplevel(self.root)
+      #      bug_window.title("Issue Report")
+       #     bug_window.geometry("400x300")
+        #    text_box = tk.Text(bug_window, wrap='word', width=40, height=10)
+         #   text_box.pack(expand=True, fill='both', padx=10, pady=10)
+          #  label = tk.Label(bug_window, text="Pressing Submit will save your report as an entry in bug_report.txt.\nYou can submit multiple issues.", anchor='w')
+           # label.pack(pady=10)
+           # def submit_bug_report():
+           #     bug_report_text = text_box.get("1.0", tk.END).strip()
+           #     if bug_report_text:
+           #         with open("bug_report.txt", "a", encoding='utf-8') as file:
+           #             with open("bug_report.txt", "a") as file:
+           #                 file.write(f"{bug_report_text}\n---\n")
+           #         bug_window.destroy()
+           #         debug_logger.debug("Issue report submitted.")
+           #     else:
+           #         messagebox.showwarning("Issue Report", "Please enter a issue report before submitting.")
+           # submit_button = tk.Button(bug_window, text="Submit", command=submit_bug_report)
+           # submit_button.pack(pady=10)
+           # debug_logger.debug("Issue report window opened.")
+        #except Exception as e:
+         #   logging.error("Error opening issue report window", exc_info=True)
+          #  debug_logger.error("UI Error. See error_log.txt for details.", exc_info=True)
 
 
 
