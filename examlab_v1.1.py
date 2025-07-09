@@ -68,10 +68,6 @@ class Tooltip:
             self.tooltip_window.destroy()
             self.tooltip_window = None
             debug_logger.debug(f"Hidden tooltip {self.widget}")
-
-class ClozeEditor:
-    def 
-
 class MoodleXMLBuilderApp:
     def __init__(self, root):
         try:
@@ -79,7 +75,7 @@ class MoodleXMLBuilderApp:
             self.root.title("eXaMLab - Moodle XML Utility")
             #self.root.geometry("600x520")
             self.root.resizable(True, True)
-            self.root.minsize(600, 520)
+            self.root.minsize(750, 630)
             if platform.system() == "Windows":
                 self.root.iconbitmap(os.path.join(basedir, "icon.ico"))
             else:
@@ -104,10 +100,10 @@ class MoodleXMLBuilderApp:
                 except ValueError:
                     return False
             vcmd = (self.root.register(validate_points), '%P')
-            self.label_category = tk.Label(self.root, text="Enter Question Bank Category:", anchor='e')
+            self.label_category = tk.Label(self.root, text="Enter Category Name:", anchor='e')
             self.label_category.grid(row=0, column=0, padx=10, pady=5, sticky='e')
             self.entry_category = tk.Entry(self.root, width=50)
-            self.entry_category.grid(row=0, column=1, padx=10, pady=5)
+            self.entry_category.grid(row=0, column=1, padx=10, pady=5, sticky='we', columnspan=2)
             Tooltip(self.entry_category, "Enter the name of this question bank. This will be used as the category these questions belong to inside of Moodle. You can only have one category per XML file.")
             debug_logger.debug("Category input field initialized.")
 ##You can actually have multiple categories in a MoodleXML file.
@@ -124,74 +120,76 @@ class MoodleXMLBuilderApp:
             self.label_question_name = tk.Label(self.root, text="Enter Question Title:", anchor='e')
             self.label_question_name.grid(row=2, column=0, padx=10, pady=5, sticky='e')
             self.entry_question_name = tk.Entry(self.root, width=50)
-            self.entry_question_name.grid(row=2, column=1, padx=10, pady=5)
+            self.entry_question_name.grid(row=2, column=1, padx=10, pady=5, columnspan=2, sticky='we')
             Tooltip(self.entry_question_name, "Enter a title for the question. This will be displayed as the Question Name in Moodle.\n\nNote that Question Name is NOT the same thing as the text of the question. Question Names are purely cosmetic and only seeen by the instructor.")
             debug_logger.debug("Question name input field initialized.")
             self.label_question_text = tk.Label(self.root, text="Enter Question Text:", anchor='e')
             self.label_question_text.grid(row=3, column=0, padx=10, pady=5, sticky='e')
             self.entry_question_text = tk.Text(self.root, width=50, height=4)
-            self.entry_question_text.grid(row=3, column=1, padx=10, pady=5)
+            self.entry_question_text.grid(row=3, column=1, padx=10, pady=5, sticky='we', columnspan=2)
             Tooltip(self.entry_question_text, "Enter the text of the question.")
             debug_logger.debug("Question text input field initialized.")
             self.label_points = tk.Label(self.root, text="Point Value (default is 1):", anchor='e')
-            self.label_points.grid(row=4, column=0, padx=10, pady=5, sticky='e')
+            self.label_points.grid(row=5, column=0, padx=10, pady=5, sticky='e')
             self.entry_points = tk.Entry(self.root, width=10, validate='key', validatecommand=vcmd)
-            self.entry_points.grid(row=4, column=1, sticky='w', padx=10, pady=5)
+            self.entry_points.grid(row=5, column=1, sticky='w', padx=10, pady=5)
             self.entry_points.insert(0, "1")  # Default value for points is 1
             Tooltip(self.entry_points, "Enter the point value for this question.\n\nThis value is used as the default grade for the question in Moodle. This isn't really necessary to set, depending on how your quiz is going to be configured.\nMoodle figures out how many points each question should be worth based on the Maximum Grade you set for the quiz.\n\nIn short, this is purely personal preference.")
             debug_logger.debug("Points input field initialized.")
             self.label_mcq_options = tk.Label(self.root, text="Possible Choices:", anchor='e')
-            self.label_mcq_options.grid(row=5, column=0, padx=10, pady=5, sticky='e')
+            self.label_mcq_options.grid(row=6, column=0, padx=10, pady=5, sticky='e')
             self.entry_mcq_options = tk.Entry(self.root, width=50)
-            self.entry_mcq_options.grid(row=5, column=1, padx=10, pady=5)
+            self.entry_mcq_options.grid(row=6, column=1, padx=10, pady=5, columnspan=2, sticky='we')
             Tooltip(self.entry_mcq_options, "Enter the options for the multiple-choice question, separated by commas. Choices will be shuffled inside Moodle.\n\nExample: Choice 1,Choice 2,Choice 3,Choice 4\nDo not include spaces after commas. Spaces within choices are allowed.")
             debug_logger.debug("Multiple choice options input field initialized.")
             self.label_correct_option = tk.Label(self.root, text="Correct Answer(s)", anchor='e')
-            self.label_correct_option.grid(row=6, column=0, padx=10, pady=5, sticky='e')
+            self.label_correct_option.grid(row=7, column=0, padx=10, pady=5, sticky='e')
             self.entry_correct_option = tk.Entry(self.root, width=50)
-            self.entry_correct_option.grid(row=6, column=1, padx=10, pady=5)
+            self.entry_correct_option.grid(row=7, column=1, padx=10, pady=5, columnspan=2, sticky='we')
             Tooltip(self.entry_correct_option, "Enter the number(s) corresponding to the correct option(s), separated by commas.\n\nExample: 1,3\nThis would mean the first and third options are correct.")
             debug_logger.debug("Correct option input field initialized.")
             self.label_short_answer_correct = tk.Label(self.root, text="Enter Correct Short Answer:", anchor='e')
-            self.label_short_answer_correct.grid(row=7, column=0, padx=10, pady=5, sticky='e')
+            self.label_short_answer_correct.grid(row=8, column=0, padx=10, pady=5, sticky='e')
             self.entry_short_answer_correct = tk.Entry(self.root, width=50)
-            self.entry_short_answer_correct.grid(row=7, column=1, padx=10, pady=5)
+            self.entry_short_answer_correct.grid(row=8, column=1, padx=10, pady=5)
             Tooltip(self.entry_short_answer_correct, "Enter the correct answer for the short answer question.\n\nShort Answer questions are very sensitive to spelling and punctuation. \nBe sure to enter the correct answer EXACTLY as you want it to be entered by students.\n\nWildcards are supported: you can replace a character with an asterisk * to act as a placeholder for any possible character that could be used. \nThis can let you account for alternative spellings.\n\nIf the question doesn't have a definitive answer, you should use the Essay question type instead. \nEssay questions are open-ended and give the student a blank text box to write in.")
             debug_logger.debug("Short answer input field initialized.")
             self.label_tf_answer = tk.Label(self.root, text="Select True/False:", anchor='e')
-            self.label_tf_answer.grid(row=8, column=0, padx=10, pady=5, sticky='e')
+            self.label_tf_answer.grid(row=9, column=0, padx=10, pady=5, sticky='e')
             self.tf_var = tk.StringVar(value="True")
             self.radio_true = tk.Radiobutton(self.root, text="True", variable=self.tf_var, value="True")
-            self.radio_true.grid(row=8, column=1, sticky='w')
+            self.radio_true.grid(row=9, column=1, sticky='w')
             self.radio_false = tk.Radiobutton(self.root, text="False", variable=self.tf_var, value="False")
-            self.radio_false.grid(row=8, column=1, sticky='e')
+            self.radio_false.grid(row=9, column=1, sticky='e')
             Tooltip(self.radio_true, "Select if the answer is True.")
             Tooltip(self.radio_false, "Select if the answer is False.")
             debug_logger.debug("True/False radio buttons initialized.")
             #self.buttton_bug_report = tk.Button(self.root, text="Report Issues", command=self.bug_report)
             #self.buttton_bug_report.grid(row=10, column=0, padx=10, pady=5, sticky='w')
+            self.button_cloze_editor = tk.Button(self.root, text="Open Cloze Editor", command=self.cloze_editor)
+            self.button_cloze_editor.grid(row=4, column=1, padx=10, pady=5, columnspan=2, sticky='we')
             self.button_add_question = tk.Button(self.root, text="Add Question", command=self.add_question)
-            self.button_add_question.grid(row=10, column=0, padx=10, pady=5, sticky='w')
+            self.button_add_question.grid(row=11, column=1, padx=10, pady=5, sticky='nesw')
             Tooltip(self.button_add_question, "Click to add the current question to your question bank.")
             debug_logger.debug("Add question button initialized.")
             self.button_edit_question = tk.Button(self.root, text="Edit Question", command=self.edit_question, state=tk.DISABLED)
-            self.button_edit_question.grid(row=10, column=1, padx=10, pady=5, sticky='w')
+            self.button_edit_question.grid(row=11, column=0, padx=5, pady=5, sticky='nesw')
             Tooltip(self.button_edit_question, "Select a question from the list below. Then, use this button to edit the selected question.")
             debug_logger.debug("Edit question button initialized.")
             self.button_delete_question = tk.Button(self.root, text="Delete Question(s)", command=self.delete_selected_questions)
-            self.button_delete_question.grid(row=10, column=1, padx=5, pady=5, sticky='e')
+            self.button_delete_question.grid(row=11, column=2, padx=5, pady=5, sticky='nesw')
             Tooltip(self.button_delete_question, "Click to delete the selected questions from the list.")
             debug_logger.debug("Delete question button initialized.")
             self.listbox_questions = tk.Listbox(self.root, selectmode=tk.EXTENDED)
-            self.listbox_questions.grid(row=11, column=0, columnspan=3, padx=10, pady=10, sticky='nsew')
+            self.listbox_questions.grid(row=12, column=0, columnspan=3, padx=10, pady=10, sticky='nsew')
             self.listbox_questions.bind('<<ListboxSelect>>', self.on_question_select)
-            self.root.grid_rowconfigure(11, weight=1)
+            self.root.grid_rowconfigure(12, weight=1)
             self.root.grid_columnconfigure(0, weight=1)
             self.root.grid_columnconfigure(1, weight=1)
             self.root.grid_columnconfigure(2, weight=1)
             debug_logger.debug("Question listbox initialized.")
             self.button_save_xml = tk.Button(self.root, text="Save as XML", command=self.save_as_xml)
-            self.button_save_xml.grid(row=12, column=0, columnspan=3, pady=5)
+            self.button_save_xml.grid(row=13, column=0, columnspan=3, pady=5)
             Tooltip(self.button_save_xml, "Click to save all the questions as an XML file.")
             debug_logger.debug("Save as XML button initialized.")
             self.update_ui_for_question_type("Multiple Choice")
@@ -470,6 +468,101 @@ class MoodleXMLBuilderApp:
         except Exception as e:
             logging.error("Error creating XML content", exc_info=True)
             return ""
+        
+
+    def cloze_editor(self):
+        try:
+            cloze_window = tk.Toplevel(self.root)
+            cloze_window.title("Cloze Editor")
+            cloze_window.geometry("355x255")
+            # Make grid rows/columns expandable
+            cloze_window.grid_rowconfigure(1, weight=1)
+            cloze_window.grid_columnconfigure(0, weight=1)
+            cloze_window.grid_columnconfigure(1, weight=1)
+            #dropdown menu for the question type being built via Cloze
+            cloze_window_label = tk.Label(cloze_window, text="Select Cloze Question Type:", anchor='w')
+            cloze_window_label.grid(row=0, column=0, padx=10, pady=5, sticky='e')
+            cloze_options = ["Multichoice", "Short Answer", "Numerical"]
+            cloze_type_var = tk.StringVar(value="Multichoice")
+            cloze_type_menu = ttk.Combobox(cloze_window, textvariable=cloze_type_var, values=cloze_options)
+            cloze_type_menu.grid(row=0, column=1, padx=10, pady=5, sticky='w')
+            cloze_type_menu.state(["readonly"])  # Make it read-only to simulate an OptionMenu behavior
+            Tooltip(cloze_type_menu, "Select the type of cloze question you want to create.")
+            debug_logger.debug("Cloze question type dropdown initialized.")
+            # Weight input
+            cloze_weight_label = tk.Label(cloze_window, text="Weight (relative to other Cloze snippets inside of this question):", anchor='w', wraplength=150)
+            cloze_weight_label.grid(row=1, column=0, padx=10, pady=5, sticky='e')
+            cloze_weight_entry = tk.Entry(cloze_window, width=10)
+            cloze_weight_entry.grid(row=1, column=1, padx=10, pady=5, sticky='w')
+            cloze_weight_entry.insert(0, "1")
+            Tooltip(cloze_weight_entry, "Enter the weight for this cloze question snippet.\n\nFor example, if you have two cloze snippets with weights 2 and 4, the second will be worth twice the percentage of points as the first one, \neven if the question itself is only worth one point. \nThis does NOT affect the total score of the question, just how the subquestions have their points distributed.")
+            # Correct answers
+            correct_answers_frame = tk.LabelFrame(cloze_window, text="Correct Answer(s)")
+            correct_answers_frame.grid(row=2, column=0, columnspan=2, padx=10, pady=5, sticky='we')
+            correct_answer_entries = []
+
+            def add_correct_answer():
+                entry = tk.Entry(correct_answers_frame, width=30)
+                entry.pack(padx=2, pady=2, fill='x')
+                correct_answer_entries.append(entry)
+                cloze_window.update_idletasks()
+                # Grow window height by 30 pixels per new entry (adjust as needed)
+                w = cloze_window.winfo_width()
+                h = cloze_window.winfo_height()
+                cloze_window.geometry(f"{w}x{h+30}")
+
+            add_correct_button = tk.Button(correct_answers_frame, text="Add Correct Answer", command=add_correct_answer)
+            add_correct_button.pack(padx=2, pady=2, fill='x')
+            add_correct_answer()  # Add one by default
+
+            # Wrong answers
+            wrong_answers_frame = tk.LabelFrame(cloze_window, text="Wrong Answer(s)")
+            wrong_answers_frame.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky='we')
+            wrong_answer_entries = []
+
+            def add_wrong_answer():
+                entry = tk.Entry(wrong_answers_frame, width=30)
+                entry.pack(padx=2, pady=2, fill='x')
+                wrong_answer_entries.append(entry)
+                cloze_window.update_idletasks()
+                w = cloze_window.winfo_width()
+                h = cloze_window.winfo_height()
+                cloze_window.geometry(f"{w}x{h+30}")
+
+            add_wrong_button = tk.Button(wrong_answers_frame, text="Add Wrong Answer", command=add_wrong_answer)
+            add_wrong_button.pack(padx=2, pady=2, fill='x')
+            add_wrong_answer()  # Add one by default
+
+            def build_cloze_string():
+                weight = cloze_weight_entry.get().strip() or "100"
+                corrects = [e.get().strip() for e in correct_answer_entries if e.get().strip()]
+                wrongs = [e.get().strip() for e in wrong_answer_entries if e.get().strip()]
+                cloze_type = cloze_type_var.get().upper().replace(" ", "")
+                # Build answer string
+                answer_parts = []
+                for c in corrects:
+                    answer_parts.append(f"={c}")
+                for w in wrongs:
+                    answer_parts.append(f"~{w}")
+                answer_str = "".join(answer_parts)
+                return f"{{{weight}:{cloze_type}:{answer_str}}}"
+                #the line above is why multiple choice questions are named "multichoice" - cloze only knows multichoice and the string is built via looking at the cloze_type_var value
+
+            def insert_cloze():
+                cloze_string = build_cloze_string()
+                if cloze_string:
+                    self.entry_question_text.insert(tk.END, f"\n\n{cloze_string}".strip())
+                    cloze_window.destroy()
+                    debug_logger.debug("Cloze content inserted into question text.")
+                else:
+                    messagebox.showwarning("Cloze Editor", "Please enter some content or answers before inserting.")
+            insert_button = tk.Button(cloze_window, text="Insert Cloze Content", command=insert_cloze)
+            insert_button.grid(row=4, column=0, columnspan=2, pady=10)
+            debug_logger.debug("Cloze editor window opened.")
+        except Exception as e:
+            logging.error("Error opening Cloze editor", exc_info=True)
+
+
 if __name__ == "__main__":
     try:
         root = tk.Tk()
