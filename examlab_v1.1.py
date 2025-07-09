@@ -68,6 +68,10 @@ class Tooltip:
             self.tooltip_window.destroy()
             self.tooltip_window = None
             debug_logger.debug(f"Hidden tooltip {self.widget}")
+
+class ClozeEditor:
+    def 
+
 class MoodleXMLBuilderApp:
     def __init__(self, root):
         try:
