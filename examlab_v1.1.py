@@ -1,12 +1,13 @@
+## Written by Gene Smith-James
+## Version 1.1 - MacOS compatibility
+#region logging+tooltips+icon
 import os
 import logging
 import platform
 import tkinter as tk
 from tkinter import messagebox, filedialog, ttk, Text
-## Written by Gene Smith-James
-## Version 1.1 - MacOS compatibility
 basedir = os.path.dirname(__file__)
-# Windows-specific settings
+# windows: set taskbar icon
 if platform.system() == "Windows":
     try:
         from ctypes import windll  # Only exists on Windows
@@ -14,12 +15,16 @@ if platform.system() == "Windows":
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     except ImportError:
         pass
-## Logging - Cross-Platform (macOS/Linux & Windows)
-## Thanks to Josh Manders
+
+
+####################################################################################################################################
+## windows/mac/linux: logging
+####################################################################################################################################
 if platform.system() == "Windows":
     log_dir = os.path.join(os.getenv("APPDATA"), "eXaMLab", "logs")
 else:  # macOS & Linux
     log_dir = os.path.expanduser("~/Library/Logs/eXaMLab")
+
 os.makedirs(log_dir, exist_ok=True)
 error_log_path = os.path.join(log_dir, "error_log.txt")
 debug_log_path = os.path.join(log_dir, "debug_log.txt")
@@ -68,6 +73,11 @@ class Tooltip:
             self.tooltip_window.destroy()
             self.tooltip_window = None
             debug_logger.debug(f"Hidden tooltip {self.widget}")
+#endregion logging+tooltips+icon
+
+####################################################################################################################################
+## App
+####################################################################################################################################
 class MoodleXMLBuilderApp:
     def __init__(self, root):
         try:
@@ -84,11 +94,16 @@ class MoodleXMLBuilderApp:
             self.undo_stack = []
             self.edit_mode = False
             self.edit_index = None
+            self.mcq_option_entries = []
             self.setup_ui()
             debug_logger.debug("User interface setup complete")
         except Exception as e:
             logging.error("Error initializing the application", exc_info=True)
             debug_logger.debug("Brutal error. Cannot initialize application.")
+
+####################################################################################################################################
+## UI SETUP
+####################################################################################################################################
     def setup_ui(self):
         try:
             def validate_points(value_if_allowed):
@@ -106,8 +121,6 @@ class MoodleXMLBuilderApp:
             self.entry_category.grid(row=0, column=1, padx=10, pady=5, sticky='we', columnspan=2)
             Tooltip(self.entry_category, "Enter the name of this question bank. This will be used as the category these questions belong to inside of Moodle. You can only have one category per XML file.")
             debug_logger.debug("Category input field initialized.")
-##You can actually have multiple categories in a MoodleXML file.
-##Right now, the program is configured to only let you do one overarching category for the entire bank.
             self.label_question_type = tk.Label(self.root, text="Select Question Type:", anchor='e')
             self.label_question_type.grid(row=1, column=0, padx=10, pady=5, sticky='e')
             self.question_type_var = tk.StringVar(value="Multiple Choice")
@@ -136,18 +149,33 @@ class MoodleXMLBuilderApp:
             self.entry_points.insert(0, "1")  # Default value for points is 1
             Tooltip(self.entry_points, "Enter the point value for this question.\n\nThis value is used as the default grade for the question in Moodle. This isn't really necessary to set, depending on how your quiz is going to be configured.\nMoodle figures out how many points each question should be worth based on the Maximum Grade you set for the quiz.\n\nIn short, this is purely personal preference.")
             debug_logger.debug("Points input field initialized.")
+##Multiple Choice Question UI
             self.label_mcq_options = tk.Label(self.root, text="Possible Choices:", anchor='e')
-            self.label_mcq_options.grid(row=6, column=0, padx=10, pady=5, sticky='e')
-            self.entry_mcq_options = tk.Entry(self.root, width=50)
-            self.entry_mcq_options.grid(row=6, column=1, padx=10, pady=5, columnspan=2, sticky='we')
-            Tooltip(self.entry_mcq_options, "Enter the options for the multiple-choice question, separated by commas. Choices will be shuffled inside Moodle.\n\nExample: Choice 1,Choice 2,Choice 3,Choice 4\nDo not include spaces after commas. Spaces within choices are allowed.")
+            self.label_mcq_options.grid(row=6, column=0, padx=10, pady=5, sticky='ne')
+
+            self.mcq_options_frame = tk.Frame(self.root)
+            self.mcq_options_frame.grid(row=6, column=1, padx=10, pady=5, columnspan=2, sticky='we')
+
+            def add_mcq_option_entry(option_text="", checked=False):
+                frame = tk.Frame(self.mcq_options_frame)
+                frame.pack(side=tk.TOP, pady=2, fill='x')
+                entry = tk.Entry(frame, width=40)
+                entry.pack(side=tk.LEFT, fill='x', expand=True)
+                if option_text:
+                    entry.insert(0, option_text)
+                var = tk.BooleanVar(value=checked)
+                checkbox = tk.Checkbutton(frame, variable=var)
+                checkbox.pack(side=tk.LEFT, padx=5)
+                self.mcq_option_entries.append((entry, var))
+
+            self.add_mcq_option_button = tk.Button(self.mcq_options_frame, text="Add Choice", command=lambda: add_mcq_option_entry())
+            self.add_mcq_option_button.pack(side=tk.TOP, pady=2, fill='x')
+
+            for _ in range(4):
+                add_mcq_option_entry()
+            
             debug_logger.debug("Multiple choice options input field initialized.")
-            self.label_correct_option = tk.Label(self.root, text="Correct Answer(s)", anchor='e')
-            self.label_correct_option.grid(row=7, column=0, padx=10, pady=5, sticky='e')
-            self.entry_correct_option = tk.Entry(self.root, width=50)
-            self.entry_correct_option.grid(row=7, column=1, padx=10, pady=5, columnspan=2, sticky='we')
-            Tooltip(self.entry_correct_option, "Enter the number(s) corresponding to the correct option(s), separated by commas.\n\nExample: 1,3\nThis would mean the first and third options are correct.")
-            debug_logger.debug("Correct option input field initialized.")
+##End Multiple Choice Question UI
             self.label_short_answer_correct = tk.Label(self.root, text="Enter Correct Short Answer:", anchor='e')
             self.label_short_answer_correct.grid(row=8, column=0, padx=10, pady=5, sticky='e')
             self.entry_short_answer_correct = tk.Entry(self.root, width=50)
@@ -164,8 +192,6 @@ class MoodleXMLBuilderApp:
             Tooltip(self.radio_true, "Select if the answer is True.")
             Tooltip(self.radio_false, "Select if the answer is False.")
             debug_logger.debug("True/False radio buttons initialized.")
-            #self.buttton_bug_report = tk.Button(self.root, text="Report Issues", command=self.bug_report)
-            #self.buttton_bug_report.grid(row=10, column=0, padx=10, pady=5, sticky='w')
             self.button_cloze_editor = tk.Button(self.root, text="Open Cloze Editor", command=self.cloze_editor)
             self.button_cloze_editor.grid(row=4, column=1, padx=10, pady=5, columnspan=2, sticky='we')
             self.button_add_question = tk.Button(self.root, text="Add Question", command=self.add_question)
@@ -197,6 +223,11 @@ class MoodleXMLBuilderApp:
         except Exception as e:
             logging.error("Error setting up the user interface", exc_info=True)
             debug_logger.debug("UI Error. See error_log.txt for details.")
+
+
+####################################################################################################################################
+## FUNCTIONALITY
+####################################################################################################################################
     def on_question_select(self, event):
         if self.listbox_questions.curselection():
             self.button_edit_question.config(state=tk.NORMAL)
@@ -205,9 +236,7 @@ class MoodleXMLBuilderApp:
     def update_ui_for_question_type(self, question_type):
         try:
             self.label_mcq_options.grid()
-            self.entry_mcq_options.grid()
-            self.label_correct_option.grid()
-            self.entry_correct_option.grid()
+            self.mcq_options_frame.grid()
             self.label_short_answer_correct.grid()
             self.entry_short_answer_correct.grid()
             self.label_tf_answer.grid()
@@ -216,9 +245,7 @@ class MoodleXMLBuilderApp:
             self.button_cloze_editor.grid()
             self.button_cloze_editor.grid_remove()
             self.label_mcq_options.grid_remove()
-            self.entry_mcq_options.grid_remove()
-            self.label_correct_option.grid_remove()
-            self.entry_correct_option.grid_remove()
+            self.mcq_options_frame.grid_remove()
             self.label_short_answer_correct.grid_remove()
             self.entry_short_answer_correct.grid_remove()
             self.label_tf_answer.grid_remove()
@@ -226,9 +253,7 @@ class MoodleXMLBuilderApp:
             self.radio_false.grid_remove()
             if question_type == "Multiple Choice":
                 self.label_mcq_options.grid()
-                self.entry_mcq_options.grid()
-                self.label_correct_option.grid()
-                self.entry_correct_option.grid()
+                self.mcq_options_frame.grid()
                 debug_logger.debug("QuestionType Multiple Choice selected.")
             elif question_type == "True/False":
                 self.label_tf_answer.grid()
@@ -247,38 +272,6 @@ class MoodleXMLBuilderApp:
         except Exception as e:
             logging.error("Error updating UI for question type", exc_info=True)
             debug_logger.debug("UI Error. See error_log.txt for details.")
-
-
-
-##Bug Report button, commits to a text file
-   # def bug_report(self):
-    #    try:
-     #       bug_window = tk.Toplevel(self.root)
-      #      bug_window.title("Issue Report")
-       #     bug_window.geometry("400x300")
-        #    text_box = tk.Text(bug_window, wrap='word', width=40, height=10)
-         #   text_box.pack(expand=True, fill='both', padx=10, pady=10)
-          #  label = tk.Label(bug_window, text="Pressing Submit will save your report as an entry in bug_report.txt.\nYou can submit multiple issues.", anchor='w')
-           # label.pack(pady=10)
-           # def submit_bug_report():
-           #     bug_report_text = text_box.get("1.0", tk.END).strip()
-           #     if bug_report_text:
-           #         with open("bug_report.txt", "a", encoding='utf-8') as file:
-           #             with open("bug_report.txt", "a") as file:
-           #                 file.write(f"{bug_report_text}\n---\n")
-           #         bug_window.destroy()
-           #         debug_logger.debug("Issue report submitted.")
-           #     else:
-           #         messagebox.showwarning("Issue Report", "Please enter a issue report before submitting.")
-           # submit_button = tk.Button(bug_window, text="Submit", command=submit_bug_report)
-           # submit_button.pack(pady=10)
-           # debug_logger.debug("Issue report window opened.")
-        #except Exception as e:
-         #   logging.error("Error opening issue report window", exc_info=True)
-          #  debug_logger.error("UI Error. See error_log.txt for details.", exc_info=True)
-
-
-
     def add_question(self):
         try:
             question_type = self.question_type_var.get()
@@ -287,11 +280,9 @@ class MoodleXMLBuilderApp:
             points = self.entry_points.get()
             points = float(points) if points else 1.0  # Default to 1 point if not specified
             if question_type == "Multiple Choice":
-                options_text = self.entry_mcq_options.get()
-                correct_options_text = self.entry_correct_option.get()
-                if question_name and question_text and options_text and correct_options_text:
-                    options = [opt.strip() for opt in options_text.split(',')]
-                    correct_options = [int(opt.strip()) for opt in correct_options_text.split(',')]
+                options = [entry.get().strip() for entry, var in self.mcq_option_entries if entry.get().strip()]
+                correct_options = [idx + 1 for idx, (entry, var) in enumerate(self.mcq_option_entries) if var.get()]
+                if question_name and question_text and options and correct_options:
                     question = {
                         "type": "Multiple Choice",
                         "name": question_name,
@@ -369,8 +360,20 @@ class MoodleXMLBuilderApp:
             self.entry_question_text.delete("1.0", tk.END)
             self.entry_points.delete(0, tk.END)
             self.entry_points.insert(0, "1")
-            self.entry_mcq_options.delete(0, tk.END)
-            self.entry_correct_option.delete(0, tk.END)
+            # Remove all child widgets from mcq_options_frame to clear old entries and checkboxes
+            for child in self.mcq_options_frame.winfo_children():
+                child.destroy()
+            self.mcq_option_entries.clear()
+            for _ in range(4):
+                # Create entry and checkbox together for proper alignment
+                frame = tk.Frame(self.mcq_options_frame)
+                frame.pack(side=tk.TOP, pady=2, fill='x')
+                entry = tk.Entry(frame, width=40)
+                entry.pack(side=tk.LEFT, fill='x', expand=True)
+                var = tk.BooleanVar(value=False)
+                checkbox = tk.Checkbutton(frame, variable=var)
+                checkbox.pack(side=tk.LEFT, padx=5)
+                self.mcq_option_entries.append((entry, var))
             self.entry_short_answer_correct.delete(0, tk.END)
             self.edit_mode = False
             self.edit_index = None
@@ -413,10 +416,20 @@ class MoodleXMLBuilderApp:
             self.entry_points.delete(0, tk.END)
             self.entry_points.insert(0, str(question['points']))
             if question['type'] == "Multiple Choice":
-                self.entry_mcq_options.delete(0, tk.END)
-                self.entry_mcq_options.insert(0, ', '.join(question['options']))
-                self.entry_correct_option.delete(0, tk.END)
-                self.entry_correct_option.insert(0, ', '.join(map(str, question['correct'])))
+                # Remove all child widgets from mcq_options_frame to clear old entries and checkboxes
+                for child in self.mcq_options_frame.winfo_children():
+                    child.destroy()
+                self.mcq_option_entries.clear()
+                for idx, option in enumerate(question['options']):
+                    frame = tk.Frame(self.mcq_options_frame)
+                    frame.pack(side=tk.TOP, pady=2, fill='x')
+                    entry = tk.Entry(frame, width=40)
+                    entry.insert(0, option)
+                    entry.pack(side=tk.LEFT, fill='x', expand=True)
+                    var = tk.BooleanVar(value=(idx+1 in question['correct']))
+                    checkbox = tk.Checkbutton(frame, variable=var)
+                    checkbox.pack(side=tk.LEFT, padx=5)
+                    self.mcq_option_entries.append((entry, var))
             elif question['type'] == "True/False":
                 self.tf_var.set(question['answer'])
             elif question['type'] == "Short Answer":
@@ -427,6 +440,11 @@ class MoodleXMLBuilderApp:
             self.button_delete_question.config(state=tk.DISABLED)
         except Exception as e:
             logging.error("Error editing question", exc_info=True)
+
+
+####################################################################################################################################
+## Saving and Exporting the XML
+####################################################################################################################################
     def save_as_xml(self):
         try:
             if not self.questions:
@@ -473,6 +491,9 @@ class MoodleXMLBuilderApp:
             return ""
         
 
+####################################################################################################################################
+## Cloze Editor 
+####################################################################################################################################
     def cloze_editor(self):
         try:
             cloze_window = tk.Toplevel(self.root)
@@ -485,7 +506,7 @@ class MoodleXMLBuilderApp:
             #dropdown menu for the question type being built via Cloze
             cloze_window_label = tk.Label(cloze_window, text="Select Cloze Question Type:", anchor='w')
             cloze_window_label.grid(row=0, column=0, padx=10, pady=5, sticky='e')
-            cloze_options = ["Multichoice", "Short Answer", "Numerical"]
+            cloze_options = ["Multichoice", "Short Answer"] #"Numerical" is valid but is never used
             cloze_type_var = tk.StringVar(value="Multichoice")
             cloze_type_menu = ttk.Combobox(cloze_window, textvariable=cloze_type_var, values=cloze_options)
             cloze_type_menu.grid(row=0, column=1, padx=10, pady=5, sticky='w')
@@ -566,6 +587,9 @@ class MoodleXMLBuilderApp:
             logging.error("Error opening Cloze editor", exc_info=True)
 
 
+####################################################################################################################################
+## Loop
+####################################################################################################################################
 if __name__ == "__main__":
     try:
         root = tk.Tk()
