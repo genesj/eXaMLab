@@ -115,7 +115,7 @@ class MoodleXMLBuilderApp:
             self.dropdown_question_type.bind("<<ComboboxSelected>>", lambda event: self.update_ui_for_question_type(self.question_type_var.get()))
             self.dropdown_question_type.state(["readonly"])  # Make it read-only to simulate an OptionMenu behavior
             self.dropdown_question_type.grid(row=1, column=1, padx=10, pady=5, sticky='w')
-            Tooltip(self.dropdown_question_type, "Select the type of question you want to create. The controls will update based on the selected question type.")
+            #Tooltip(self.dropdown_question_type, "Select the type of question you want to create. The controls will update based on the selected question type.")
             debug_logger.debug("Question type dropdown initialized.")
             self.label_question_name = tk.Label(self.root, text="Enter Question Title:", anchor='e')
             self.label_question_name.grid(row=2, column=0, padx=10, pady=5, sticky='e')
@@ -213,6 +213,8 @@ class MoodleXMLBuilderApp:
             self.label_tf_answer.grid()
             self.radio_true.grid()
             self.radio_false.grid()
+            self.button_cloze_editor.grid()
+            self.button_cloze_editor.grid_remove()
             self.label_mcq_options.grid_remove()
             self.entry_mcq_options.grid_remove()
             self.label_correct_option.grid_remove()
@@ -240,6 +242,7 @@ class MoodleXMLBuilderApp:
             elif question_type == "Essay":
                 debug_logger.debug("QuestionType Essay selected.")
             elif question_type == "Cloze":
+                self.button_cloze_editor.grid()
                 debug_logger.debug("QuestionType Cloze selected.")
         except Exception as e:
             logging.error("Error updating UI for question type", exc_info=True)
