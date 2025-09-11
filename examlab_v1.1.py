@@ -1,6 +1,6 @@
 ## Written by Gene Smith-James
 ## Version 1.1 - MacOS compatibility
-#region logging+tooltips+icon
+#region This collapse is just a bunch of housekeeping: logging, tooltips, windows icon
 import os
 import logging
 import platform
@@ -73,38 +73,64 @@ class Tooltip:
             self.tooltip_window.destroy()
             self.tooltip_window = None
             debug_logger.debug(f"Hidden tooltip {self.widget}")
-#endregion logging+tooltips+icon
+#endregion
 
-####################################################################################################################################
-## App
-####################################################################################################################################
-class MoodleXMLBuilderApp:
+class mainWindow:
     def __init__(self, root):
         try:
             self.root = root
             self.root.title("eXaMLab - Moodle XML Utility")
-            #self.root.geometry("600x520")
             self.root.resizable(True, True)
             self.root.minsize(750, 630)
             if platform.system() == "Windows":
                 self.root.iconbitmap(os.path.join(basedir, "icon.ico"))
             else:
                 pass
+            # Top bar for info/buttons
+            self.topbar = tk.Frame(self.root)
+            self.topbar.pack(side=tk.TOP, fill='x')
+            self.topbar_label = tk.Label(self.topbar, text="eXaMLab Utility", font=("Arial", 14, "bold"))
+            self.topbar_label.pack(side=tk.LEFT, padx=10, pady=6)
+            # Create notebook for tabs
+            self.notebook = ttk.Notebook(self.root)
+            self.notebook.pack(fill='both', expand=True)
+            # Create question builder tab
+            question_tab = ttk.Frame(self.notebook)
+            self.quiz_builder = questionBuilder(question_tab)
+            self.notebook.add(question_tab, text="Question Builder")
+            # Create quiz tab (blank)
+            quiz_tab = ttk.Frame(self.notebook)
+            self.quiz_tab = quizBuilder(quiz_tab)
+            self.notebook.add(quiz_tab, text="Quiz Builder")
+            # Create assignment tab (blank)
+            assignment_tab = ttk.Frame(self.notebook)
+            self.assignment_tab = assignmentBuilder(assignment_tab)
+            self.notebook.add(assignment_tab, text="Assignment Builder")
+            # Create forum tab (blank)
+            forum_tab = ttk.Frame(self.notebook)
+            self.forum_tab = forumBuilder(forum_tab)
+            self.notebook.add(forum_tab, text="Forum Builder")
+            debug_logger.debug("User interface setup complete")
+        except Exception as e:
+            logging.error("Error initializing the application", exc_info=True)
+            debug_logger.debug("Brutal error. Cannot initialize application.")
+## Tabs
+class questionBuilder:
+    def __init__(self, parent):
+        try:
+            self.root = parent  # Use the passed frame, not the root window
             self.questions = []
             self.undo_stack = []
             self.edit_mode = False
             self.edit_index = None
             self.mcq_option_entries = []
-            self.setup_ui()
+            self.setup_quizBuilder_UI()
             debug_logger.debug("User interface setup complete")
         except Exception as e:
             logging.error("Error initializing the application", exc_info=True)
             debug_logger.debug("Brutal error. Cannot initialize application.")
 
-####################################################################################################################################
-## UI SETUP
-####################################################################################################################################
-    def setup_ui(self):
+    def setup_quizBuilder_UI(self):
         try:
             def validate_points(value_if_allowed):
                 if value_if_allowed == "" or value_if_allowed.isdigit():
@@ -506,7 +532,7 @@ class MoodleXMLBuilderApp:
             #dropdown menu for the question type being built via Cloze
             cloze_window_label = tk.Label(cloze_window, text="Select Cloze Question Type:", anchor='w')
             cloze_window_label.grid(row=0, column=0, padx=10, pady=5, sticky='e')
-            cloze_options = ["Multichoice", "Short Answer"] #"Numerical" is valid but is never used
+            cloze_options = ["Multichoice", "Short Answer"]
             cloze_type_var = tk.StringVar(value="Multichoice")
             cloze_type_menu = ttk.Combobox(cloze_window, textvariable=cloze_type_var, values=cloze_options)
             cloze_type_menu.grid(row=0, column=1, padx=10, pady=5, sticky='w')
@@ -557,6 +583,15 @@ class MoodleXMLBuilderApp:
             add_wrong_button.pack(padx=2, pady=2, fill='x')
             add_wrong_answer()  # Add one by default
 
+            # Show/hide wrong answers based on cloze type
+            def update_wrong_answers_visibility(*args):
+                if cloze_type_var.get() == "Multichoice":
+                    wrong_answers_frame.grid()
+                else:
+                    wrong_answers_frame.grid_remove()
+            cloze_type_var.trace_add('write', update_wrong_answers_visibility)
+            update_wrong_answers_visibility()
+
             def build_cloze_string():
                 weight = cloze_weight_entry.get().strip() or "100"
                 corrects = [e.get().strip() for e in correct_answer_entries if e.get().strip()]
@@ -564,8 +599,10 @@ class MoodleXMLBuilderApp:
                 cloze_type = cloze_type_var.get().upper().replace(" ", "")
                 # Build answer string
                 answer_parts = []
-                for c in corrects:
-                    answer_parts.append(f"={c}")
+                if corrects:
+                    answer_parts.append(f"={corrects[0]}")
+                    for c in corrects[1:]:
+                        answer_parts.append(f"~={c}")
                 for w in wrongs:
                     answer_parts.append(f"~{w}")
                 answer_str = "".join(answer_parts)
@@ -585,15 +622,30 @@ class MoodleXMLBuilderApp:
             debug_logger.debug("Cloze editor window opened.")
         except Exception as e:
             logging.error("Error opening Cloze editor", exc_info=True)
-
-
-####################################################################################################################################
-## Loop
-####################################################################################################################################
+class quizBuilder:
+    def __init__(self, parent):
+        self.root = parent
+        tk.Label(self.root, text="Quiz Title").grid(row=0, column=0, padx=10, pady=10)
+        tk.Entry(self.root, width=50).grid(row=0, column=1, padx=10, pady=10)
+        tk.Label(self.root, text="Quiz Description").grid(row=1, column=0, padx=10, pady=10)
+        tk.Text(self.root, width=50, height=4).grid(row=1, column=1, padx=10, pady=10)
+        
+        pass
+class assignmentBuilder:
+    def __init__(self, parent):
+        self.root = parent
+        # Add widgets and logic here for assignment tab
+        pass
+class forumBuilder:
+    def __init__(self, parent):
+        self.root = parent
+        # Add widgets and logic here for forum tab
+        pass
+## MAIN APPLICATION LOOP
 if __name__ == "__main__":
     try:
         root = tk.Tk()
-        app = MoodleXMLBuilderApp(root)
+        app = mainWindow(root)
         root.mainloop()
     except Exception as e:
         logging.error("Fatal error in main application loop", exc_info=True)
