@@ -176,12 +176,6 @@ class questionBuilder:
             Tooltip(self.entry_points, "Enter the point value for this question.\n\nThis value is used as the default grade for the question in Moodle. This isn't really necessary to set, depending on how your quiz is going to be configured.\nMoodle figures out how many points each question should be worth based on the Maximum Grade you set for the quiz.\n\nIn short, this is purely personal preference.")
             debug_logger.debug("Points input field initialized.")
 ##Multiple Choice Question UI
-            self.label_mcq_options = tk.Label(self.root, text="Possible Choices:", anchor='e')
-            self.label_mcq_options.grid(row=6, column=0, padx=10, pady=5, sticky='ne')
-
-            self.mcq_options_frame = tk.Frame(self.root)
-            self.mcq_options_frame.grid(row=6, column=1, padx=10, pady=5, columnspan=2, sticky='we')
-
             def add_mcq_option_entry(option_text="", checked=False):
                 frame = tk.Frame(self.mcq_options_frame)
                 frame.pack(side=tk.TOP, pady=2, fill='x')
@@ -194,8 +188,33 @@ class questionBuilder:
                 checkbox.pack(side=tk.LEFT, padx=5)
                 self.mcq_option_entries.append((entry, var))
 
-            self.add_mcq_option_button = tk.Button(self.mcq_options_frame, text="Add Choice", command=lambda: add_mcq_option_entry())
-            self.add_mcq_option_button.pack(side=tk.TOP, pady=2, fill='x')
+            def remove_last_mcq_option_entry():
+                if self.mcq_option_entries:
+                    entry, var = self.mcq_option_entries.pop()
+                    # Remove the frame containing the entry and checkbox
+                    entry.master.destroy()
+            
+            self.label_mcq_options = tk.Label(self.root, text="Possible Choices:", anchor='e')
+            self.label_mcq_options.grid(row=6, column=0, padx=10, pady=5, sticky='ne')
+
+            self.mcq_options_frame = tk.Frame(self.root)
+            self.mcq_options_frame.grid(row=6, column=1, padx=10, pady=5, columnspan=2, sticky='we')
+
+            # Add buttons above the entries
+            self.mcq_buttons_frame = tk.Frame(self.mcq_options_frame)
+            self.mcq_buttons_frame.pack(side=tk.TOP, fill='x', pady=(0,2))
+
+            self.add_mcq_option_button = tk.Button(self.mcq_buttons_frame, text="Add Choice", command=lambda: add_mcq_option_entry())
+            self.add_mcq_option_button.pack(side=tk.LEFT, padx=(0,5))
+
+            self.remove_mcq_option_button = tk.Button(self.mcq_buttons_frame, text="Remove Choice", command=remove_last_mcq_option_entry)
+            self.remove_mcq_option_button.pack(side=tk.LEFT)
+
+            # Add a label to indicate what the checkboxes do
+            self.mcq_checkbox_label = tk.Label(self.mcq_options_frame, text="Check for correct answer(s):", anchor='w', font=("Arial", 9, "italic"))
+            self.mcq_checkbox_label.pack(side=tk.TOP, anchor='w', pady=(0,2))
+
+
 
             for _ in range(4):
                 add_mcq_option_entry()
