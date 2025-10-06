@@ -650,71 +650,50 @@ class quizBuilder:
         self.root.grid_columnconfigure(0, weight=0)
         self.root.grid_columnconfigure(1, weight=1)
         quiz_title_label = tk.Label(self.root, text="Quiz Title").grid(row=0, column=0, padx=10, pady=10, sticky='e')
-        quiz_title_entry = tk.Entry(self.root, width=50)
-        quiz_title_entry.grid(row=0, column=1, padx=10, pady=10, sticky='we')
-        self.quiz_title_entry = quiz_title_entry
-
+        quiz_title_entry = tk.Entry(self.root, width=50).grid(row=0, column=1, padx=10, pady=10, sticky='we')
         quiz_description_label = tk.Label(self.root, text="Quiz Description").grid(row=1, column=0, padx=10, pady=10, sticky='e')
-        quiz_description_entry = tk.Text(self.root, width=50, height=4)
-        quiz_description_entry.grid(row=1, column=1, padx=10, pady=10, sticky='we')
-        self.quiz_description_entry = quiz_description_entry
-
+        quiz_description_entry = tk.Text(self.root, width=50, height=4).grid(row=1, column=1, padx=10, pady=10, sticky='we')
         display_description_label = tk.Label(self.root, text="Display Description on Course Page").grid(row=2, column=0, padx=10, pady=10, sticky='w')
-        display_description_boolean = tk.Checkbutton(self.root)
-        display_description_boolean.grid(row=2, column=1, padx=10, pady=10, sticky='w')
-        self.display_description_boolean = display_description_boolean
-
+        display_description_boolean = tk.Checkbutton(self.root).grid(row=2, column=1, padx=10, pady=10, sticky='w')
         point_value_label = tk.Label(self.root, text="Point Value").grid(row=3, column=0, padx=10, pady=10, sticky='e')
-        point_value_entry = tk.Entry(self.root, width=10)
-        point_value_entry.grid(row=3, column=1, padx=10, pady=10, sticky='w')
-        self.point_value_entry = point_value_entry
-
-        # Open date/time widgets
+        point_value_entry = tk.Entry(self.root, width=10).grid(row=3, column=1, padx=10, pady=10, sticky='w')
+        #add a date picker and two dropdowns for hours and minutes
         tk.Label(self.root, text="Open the quiz").grid(row=4, column=0, padx=10, pady=10, sticky='e')
-        self.cal_open = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
-        self.cal_open.grid(row=4, column=1, padx=10, pady=10, sticky='w')
+        cal_open = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
+        cal_open.grid(row=4, column=1, padx=10, pady=10, sticky='w')
         hours = [f"{i:02d}" for i in range(24)]
         minutes = [f"{i:02d}" for i in range(0, 60, 5)]
-        self.hour_var = tk.StringVar(value="00")
-        self.minute_var = tk.StringVar(value="00")
-        self.hour_menu = ttk.Combobox(self.root, textvariable=self.hour_var, values=hours, width=3)
-        self.hour_menu.grid(row=4, column=1, padx=(120,0), pady=10, sticky='w')
-        self.hour_menu.state(["readonly"])
-        self.minute_menu = ttk.Combobox(self.root, textvariable=self.minute_var, values=minutes, width=3)
-        self.minute_menu.grid(row=4, column=1, padx=(170,0), pady=10, sticky='w')
-        self.minute_menu.state(["readonly"])
-        self.am_pm_var = tk.StringVar(value="AM")
-        self.am_pm_menu = ttk.Combobox(self.root, textvariable=self.am_pm_var, values=["AM", "PM"], width=3)
-        self.am_pm_menu.grid(row=4, column=1, padx=(220,0), pady=10, sticky='w')
-        self.am_pm_menu.state(["readonly"])
-
-        # Close date/time widgets
+        hour_var = tk.StringVar(value="00")
+        minute_var = tk.StringVar(value="00")
+        hour_menu = ttk.Combobox(self.root, textvariable=hour_var, values=hours, width=3)
+        hour_menu.grid(row=4, column=1, padx=(120,0), pady=10, sticky='w')
+        hour_menu.state(["readonly"])
+        minute_menu = ttk.Combobox(self.root, textvariable=minute_var, values=minutes, width=3)
+        minute_menu.grid(row=4, column=1, padx=(170,0), pady=10, sticky='w')
+        minute_menu.state(["readonly"])
+        am_pm_menu = ttk.Combobox(self.root, values=["AM", "PM"], width=3)
+        am_pm_menu.grid(row=4, column=1, padx=(220,0), pady=10, sticky='w')
+        am_pm_menu.state(["readonly"])
         tk.Label(self.root, text="Close the quiz").grid(row=5, column=0, padx=10, pady=10, sticky='e')
-        self.cal_close = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
-        self.cal_close.grid(row=5, column=1, padx=10, pady=10, sticky='w')
-        self.hour_close_var = tk.StringVar(value="00")
-        self.minute_close_var = tk.StringVar(value="00")
-        self.hour_close_menu = ttk.Combobox(self.root, textvariable=self.hour_close_var, values=hours, width=3)
-        self.hour_close_menu.grid(row=5, column=1, padx=(120,0), pady=10, sticky='w')
-        self.hour_close_menu.state(["readonly"])
-        self.minute_close_menu = ttk.Combobox(self.root, textvariable=self.minute_close_var, values=minutes, width=3)
-        self.minute_close_menu.grid(row=5, column=1, padx=(170,0), pady=10, sticky='w')
-        self.minute_close_menu.state(["readonly"])
-        self.am_pm_close_var = tk.StringVar(value="AM")
-        self.am_pm_close_menu = ttk.Combobox(self.root, textvariable=self.am_pm_close_var, values=["AM", "PM"], width=3)
-        self.am_pm_close_menu.grid(row=5, column=1, padx=(220,0), pady=10, sticky='w')
-        self.am_pm_close_menu.state(["readonly"])
-
+        cal_close = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
+        cal_close.grid(row=5, column=1, padx=10, pady=10, sticky='w')
+        hours_close = [f"{i:02d}" for i in range(24)]
+        minutes_close = [f"{i:02d}" for i in range(0, 60, 5)]
+        hour_close_var = tk.StringVar(value="00")
+        minute_close_var = tk.StringVar(value="00")
+        hour_close_menu = ttk.Combobox(self.root, textvariable=hour_var, values=hours, width=3)
+        hour_close_menu.grid(row=5, column=1, padx=(120,0), pady=10, sticky='w')
+        hour_close_menu.state(["readonly"])
+        minute_close_menu = ttk.Combobox(self.root, textvariable=minute_var, values=minutes, width=3)
+        minute_close_menu.grid(row=5, column=1, padx=(170,0), pady=10, sticky='w')
+        minute_close_menu.state(["readonly"])
+        am_pm_close_menu = ttk.Combobox(self.root, values=["AM", "PM"], width=3)
+        am_pm_close_menu.grid(row=5, column=1, padx=(220,0), pady=10, sticky='w')
+        am_pm_close_menu.state(["readonly"])
         time_limit_label = tk.Label(self.root, text="Time limit").grid(row=6, column=0, padx=10, pady=10, sticky='e')
-        time_limit_entry = tk.Entry(self.root, width=4)
-        time_limit_entry.grid(row=6, column=1, padx=10, pady=10, sticky="w")
-        self.time_limit_entry = time_limit_entry
-
+        time_limit_entry = tk.Entry(self.root, width=4).grid(row=6, column=1, padx=10, pady=10, sticky="w")
         attempts_allowed_label = tk.Label(self.root, text="Attempts allowed").grid(row=7, column=0, padx=10, pady=10, sticky='e')
-        attempts_allowed_entry = tk.Entry(self.root, width=4)
-        attempts_allowed_entry.grid(row=7, column=1, padx=10, pady=10, sticky="w")
-        self.attempts_allowed_entry = attempts_allowed_entry
-
+        attempts_allowed_entry = tk.Entry(self.root, width=4).grid(row=7, column=1, padx=10, pady=10, sticky="w")
         # Label + help for loaded questions
         self.loaded_questions_label_frame = tk.Frame(self.root)
         self.loaded_questions_label_frame.grid(row=8, column=0, columnspan=2, padx=10, sticky='we')
