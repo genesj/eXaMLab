@@ -6,6 +6,7 @@ import logging
 import platform
 import tkinter as tk
 from tkinter import messagebox, filedialog, ttk, Text
+from mbz_builder import build_quiz_mbz
 import xml.etree.ElementTree as ET
 # import DateEntry used in quizBuilder; Calendar is optional if you need it elsewhere
 from tkcalendar import DateEntry
@@ -104,6 +105,7 @@ class mainWindow:
             # Create quiz tab (blank)
             quiz_tab = ttk.Frame(self.notebook)
             self.quiz_tab = quizBuilder(quiz_tab)
+            self.quiz_tab.main_window_ref = self
             self.notebook.add(quiz_tab, text="Quiz Builder")
             # Create assignment tab (blank)
             assignment_tab = ttk.Frame(self.notebook)
@@ -650,11 +652,15 @@ class quizBuilder:
         self.root = parent
         self.root.grid_columnconfigure(0, weight=0)
         self.root.grid_columnconfigure(1, weight=1)
-        quiz_title_label = tk.Label(self.root, text="Quiz Title").grid(row=0, column=0, padx=10, pady=10, sticky='e')
-        quiz_title_entry = tk.Entry(self.root, width=50).grid(row=0, column=1, padx=10, pady=10, sticky='we')
-        quiz_description_label = tk.Label(self.root, text="Quiz Description").grid(row=1, column=0, padx=10, pady=10, sticky='e')
-        quiz_description_entry = tk.Text(self.root, width=50, height=4).grid(row=1, column=1, padx=10, pady=10, sticky='we')
-        display_description_label = tk.Label(self.root, text="Display Description on Course Page").grid(row=2, column=0, padx=10, pady=10, sticky='w')
+        tk.Label(self.root, text="Quiz Title").grid(row=0, column=0, padx=10, pady=10, sticky='e')
+        self.quiz_title_entry = tk.Entry(self.root, width=50)  # was local
+        self.quiz_title_entry.grid(row=0, column=1, padx=10, pady=10, sticky='we')
+        tk.Label(self.root, text="Quiz Description").grid(row=1, column=0, padx=10, pady=10, sticky='e')
+        self.quiz_description_entry = tk.Text(self.root, width=50, height=4)  # was local
+        self.quiz_description_entry.grid(row=1, column=1, padx=10, pady=10, sticky='we')
+        tk.Label(self.root, text="Display Description on Course Page").grid(row=2, column=0, padx=10, pady=10, sticky='w')
+        self.display_description_boolean = tk.Checkbutton(self.root)  # keep handle if you want it later
+        self.display_description_boolean.grid(row=2, column=1, padx=10, pady=10, sticky='w')
         display_description_boolean = tk.Checkbutton(self.root).grid(row=2, column=1, padx=10, pady=10, sticky='w')
         point_value_label = tk.Label(self.root, text="Point Value").grid(row=3, column=0, padx=10, pady=10, sticky='e')
         point_value_entry = tk.Entry(self.root, width=10).grid(row=3, column=1, padx=10, pady=10, sticky='w')
@@ -709,8 +715,12 @@ class quizBuilder:
         self.root.grid_rowconfigure(9, weight=1)
         # storage for imported questions
         self.loaded_questions = []
-        tk.Button(self.root, text="Import Question XML File", command=self.import_xml).grid(row=10, column=0, padx=10, pady=10, sticky='we')
-        tk.Button(self.root, text="Save Quiz").grid(row=10, column=1, padx=10, pady=10, sticky='we')
+        tk.Button(self.root, text="Import Question XML File", command=self.import_xml)\
+            .grid(row=10, column=0, padx=10, pady=10, sticky='we')
+
+        # NEW: Export .mbz button
+        tk.Button(self.root, text="Export Quiz (.mbz)", command=self.export_quiz_mbz)\
+            .grid(row=10, column=1, padx=10, pady=10, sticky='we')        
         pass
     
     def import_xml(self):
@@ -809,6 +819,59 @@ class quizBuilder:
             self.update_question_listbox()
         except Exception as e:
             messagebox.showerror("Import Error", f"Failed to import XML: {e}")
+			
+    def export_quiz_mbz(self):
+        try:
+            # Pull quiz metadata from this tab
+            quiz_name = (self.quiz_title_entry.get() or "Quiz").strip()
+            intro_html = self.quiz_description_entry.get("1.0", tk.END).strip()
+
+            # Pull category + questions from the Question Builder tab
+            # The mainWindow stored it as self.quiz_builder (see your code)
+            main = self.root.master.master  # parent frame -> notebook frame -> root container
+            # A bit safer: walk up to find attribute 'quiz_builder'
+            app = None
+            parent = self.root
+            while parent is not None:
+                if hasattr(parent, "master"):
+                    parent = parent.master
+                else:
+                    break
+            # Actually, we have a direct handle in mainWindow: self.quiz_builder
+            # So better pass it into quizBuilder on creation; but with your code, we can reach via:
+            # The instance lives on the mainWindow as 'self.quiz_builder'
+            # Let's store a backref when quizBuilder is created. See patch below.
+            mw = getattr(self, "main_window_ref", None)
+            if mw is None or not hasattr(mw, "quiz_builder"):
+                tk.messagebox.showerror("Export", "Could not locate Question Builder in the main window.")
+                return
+
+            qb = mw.quiz_builder
+            category_name = qb.entry_category.get().strip() or "Default category"
+            questions = qb.questions[:]  # list of dicts you already build
+
+            if not questions:
+                tk.messagebox.showwarning("Export", "No questions found. Add questions in the Question Builder first.")
+                return
+
+            # Build the .mbz archive (bytes)
+            mbz_bytes = build_quiz_mbz(category_name, questions, quiz_name, intro_html)
+
+            # Save dialog
+            path = filedialog.asksaveasfilename(
+                defaultextension=".mbz",
+                filetypes=[("Moodle Backup", "*.mbz"), ("Zip", "*.zip")],
+                initialfile=f"{quiz_name or 'quiz'}.mbz"
+            )
+            if not path:
+                return
+            with open(path, "wb") as f:
+                f.write(mbz_bytes)
+            tk.messagebox.showinfo("Export", f"Exported Moodle backup:\n{os.path.basename(path)}")
+        except Exception as e:
+            tk.messagebox.showerror("Export Error", f"Failed to export .mbz: {e}")
+
+
 
     def update_question_listbox(self):
         self.listbox_questions.delete(0, tk.END)
