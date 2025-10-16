@@ -6,7 +6,7 @@ import logging
 import platform
 import tkinter as tk
 from tkinter import messagebox, filedialog, ttk, Text
-from mbz_builder import build_quiz_mbz, build_quiz_activity_xml
+from mbz_builder import build_quiz_mbz
 import xml.etree.ElementTree as ET
 # import DateEntry used in quizBuilder; Calendar is optional if you need it elsewhere
 from tkcalendar import DateEntry
