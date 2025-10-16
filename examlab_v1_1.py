@@ -6,6 +6,10 @@ import logging
 import platform
 import tkinter as tk
 from tkinter import messagebox, filedialog, ttk, Text
+from mbz_builder import build_quiz_mbz, build_quiz_activity_xml
+import xml.etree.ElementTree as ET
+# import DateEntry used in quizBuilder; Calendar is optional if you need it elsewhere
+from tkcalendar import DateEntry
 basedir = os.path.dirname(__file__)
 # windows: set taskbar icon
 if platform.system() == "Windows":
@@ -73,7 +77,7 @@ class Tooltip:
             self.tooltip_window.destroy()
             self.tooltip_window = None
             debug_logger.debug(f"Hidden tooltip {self.widget}")
-#endregion
+
 
 class mainWindow:
     def __init__(self, root):
@@ -101,6 +105,7 @@ class mainWindow:
             # Create quiz tab (blank)
             quiz_tab = ttk.Frame(self.notebook)
             self.quiz_tab = quizBuilder(quiz_tab)
+            self.quiz_tab.main_window_ref = self
             self.notebook.add(quiz_tab, text="Quiz Builder")
             # Create assignment tab (blank)
             assignment_tab = ttk.Frame(self.notebook)
@@ -641,25 +646,386 @@ class questionBuilder:
             debug_logger.debug("Cloze editor window opened.")
         except Exception as e:
             logging.error("Error opening Cloze editor", exc_info=True)
+#endregion
 class quizBuilder:
     def __init__(self, parent):
         self.root = parent
-        tk.Label(self.root, text="Quiz Title").grid(row=0, column=0, padx=10, pady=10)
-        tk.Entry(self.root, width=50).grid(row=0, column=1, padx=10, pady=10)
-        tk.Label(self.root, text="Quiz Description").grid(row=1, column=0, padx=10, pady=10)
-        tk.Text(self.root, width=50, height=4).grid(row=1, column=1, padx=10, pady=10)
-        
+        self.root.grid_columnconfigure(0, weight=0)
+        self.root.grid_columnconfigure(1, weight=1)
+        tk.Label(self.root, text="Quiz Title").grid(row=0, column=0, padx=10, pady=10, sticky='e')
+        self.quiz_title_entry = tk.Entry(self.root, width=50)  # was local
+        self.quiz_title_entry.grid(row=0, column=1, padx=10, pady=10, sticky='we')
+        tk.Label(self.root, text="Quiz Description").grid(row=1, column=0, padx=10, pady=10, sticky='e')
+        self.quiz_description_entry = tk.Text(self.root, width=50, height=4)  # was local
+        self.quiz_description_entry.grid(row=1, column=1, padx=10, pady=10, sticky='we')
+        tk.Label(self.root, text="Display Description on Course Page").grid(row=2, column=0, padx=10, pady=10, sticky='w')
+        self.display_description_boolean = tk.Checkbutton(self.root)  # keep handle if you want it later
+        self.display_description_boolean.grid(row=2, column=1, padx=10, pady=10, sticky='w')
+        display_description_boolean = tk.Checkbutton(self.root).grid(row=2, column=1, padx=10, pady=10, sticky='w')
+        point_value_label = tk.Label(self.root, text="Point Value").grid(row=3, column=0, padx=10, pady=10, sticky='e')
+        point_value_entry = tk.Entry(self.root, width=10).grid(row=3, column=1, padx=10, pady=10, sticky='w')
+        #add a date picker and two dropdowns for hours and minutes
+        tk.Label(self.root, text="Open the quiz").grid(row=4, column=0, padx=10, pady=10, sticky='e')
+        cal_open = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
+        cal_open.grid(row=4, column=1, padx=10, pady=10, sticky='w')
+        hours = [f"{i:02d}" for i in range(24)]
+        minutes = [f"{i:02d}" for i in range(0, 60, 5)]
+        hour_var = tk.StringVar(value="00")
+        minute_var = tk.StringVar(value="00")
+        hour_menu = ttk.Combobox(self.root, textvariable=hour_var, values=hours, width=3)
+        hour_menu.grid(row=4, column=1, padx=(120,0), pady=10, sticky='w')
+        hour_menu.state(["readonly"])
+        minute_menu = ttk.Combobox(self.root, textvariable=minute_var, values=minutes, width=3)
+        minute_menu.grid(row=4, column=1, padx=(170,0), pady=10, sticky='w')
+        minute_menu.state(["readonly"])
+        am_pm_menu = ttk.Combobox(self.root, values=["AM", "PM"], width=3)
+        am_pm_menu.grid(row=4, column=1, padx=(220,0), pady=10, sticky='w')
+        am_pm_menu.state(["readonly"])
+        tk.Label(self.root, text="Close the quiz").grid(row=5, column=0, padx=10, pady=10, sticky='e')
+        cal_close = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
+        cal_close.grid(row=5, column=1, padx=10, pady=10, sticky='w')
+        hours_close = [f"{i:02d}" for i in range(24)]
+        minutes_close = [f"{i:02d}" for i in range(0, 60, 5)]
+        hour_close_var = tk.StringVar(value="00")
+        minute_close_var = tk.StringVar(value="00")
+        hour_close_menu = ttk.Combobox(self.root, textvariable=hour_var, values=hours, width=3)
+        hour_close_menu.grid(row=5, column=1, padx=(120,0), pady=10, sticky='w')
+        hour_close_menu.state(["readonly"])
+        minute_close_menu = ttk.Combobox(self.root, textvariable=minute_var, values=minutes, width=3)
+        minute_close_menu.grid(row=5, column=1, padx=(170,0), pady=10, sticky='w')
+        minute_close_menu.state(["readonly"])
+        am_pm_close_menu = ttk.Combobox(self.root, values=["AM", "PM"], width=3)
+        am_pm_close_menu.grid(row=5, column=1, padx=(220,0), pady=10, sticky='w')
+        am_pm_close_menu.state(["readonly"])
+        time_limit_label = tk.Label(self.root, text="Time limit").grid(row=6, column=0, padx=10, pady=10, sticky='e')
+        time_limit_entry = tk.Entry(self.root, width=4).grid(row=6, column=1, padx=10, pady=10, sticky="w")
+        attempts_allowed_label = tk.Label(self.root, text="Attempts allowed").grid(row=7, column=0, padx=10, pady=10, sticky='e')
+        attempts_allowed_entry = tk.Entry(self.root, width=4).grid(row=7, column=1, padx=10, pady=10, sticky="w")
+        # Label + help for loaded questions
+        self.loaded_questions_label_frame = tk.Frame(self.root)
+        self.loaded_questions_label_frame.grid(row=8, column=0, columnspan=2, padx=10, sticky='we')
+        self.label_loaded_questions = tk.Label(self.loaded_questions_label_frame, text="Loaded Questions")
+        self.label_loaded_questions.pack(side=tk.LEFT)
+        self.label_loaded_help = tk.Label(self.loaded_questions_label_frame, text=" ?", fg="blue", cursor="hand2")
+        self.label_loaded_help.pack(side=tk.LEFT, padx=(6,0))
+        Tooltip(self.label_loaded_help, "This list shows questions imported from an XML file (e.g. produced by the Question Builder).\n\nUse the Import button below to load a Moodle XML file. Imported items will appear here.")
+        # listbox to show loaded questions (store as instance attribute so other methods can update it)
+        self.listbox_questions = tk.Listbox(self.root)
+        self.listbox_questions.grid(row=9, column=0, columnspan=2, padx=10, pady=6, sticky='nsew')
+        self.root.grid_rowconfigure(9, weight=1)
+        # storage for imported questions
+        self.loaded_questions = []
+        tk.Button(self.root, text="Import Question XML File", command=self.import_xml)\
+            .grid(row=10, column=0, padx=10, pady=10, sticky='we')
+
+        # NEW: Export .mbz button
+        tk.Button(self.root, text="Export Quiz (.mbz)", command=self.export_quiz_mbz)\
+            .grid(row=10, column=1, padx=10, pady=10, sticky='we')        
         pass
+    
+    def import_xml(self):
+        file_path = filedialog.askopenfilename(filetypes=[("XML files", "*.xml")])
+        if not file_path:
+            return
+        try:
+            tree = ET.parse(file_path)
+            root = tree.getroot()
+            self.loaded_questions.clear()
+            for qelem in root.findall('question'):
+                q_type = qelem.get('type', '').lower()
+                # name/text and questiontext/text
+                name = qelem.findtext('name/text') or ""
+                text = qelem.findtext('questiontext/text') or ""
+                points = qelem.findtext('defaultgrade') or ""
+                try:
+                    points = float(points) if points != "" else 1.0
+                except Exception:
+                    points = 1.0
+                # Map XML type to friendly type and extract details
+                if q_type == 'multichoice' or q_type == 'multichoice':
+                    options = []
+                    correct = []
+                    for idx, ans in enumerate(qelem.findall('answer'), start=1):
+                        ans_text = ans.findtext('text') or ""
+                        fraction = ans.get('fraction') or ans.findtext('fraction') or ""
+                        options.append(ans_text)
+                        try:
+                            if str(fraction).strip() == "100":
+                                correct.append(idx)
+                        except Exception:
+                            pass
+                    question = {
+                        'type': "Multiple Choice",
+                        'name': name,
+                        'text': text,
+                        'options': options,
+                        'correct': correct,
+                        'points': points
+                    }
+                elif q_type == 'truefalse':
+                    # find which answer has fraction 100 and use its text ('true'/'false')
+                    answer_true = None
+                    for ans in qelem.findall('answer'):
+                        fraction = ans.get('fraction') or ans.findtext('fraction') or ""
+                        if str(fraction).strip() == "100":
+                            answer_true = (ans.findtext('text') or "").strip()
+                            break
+                    tf_value = "True" if answer_true and answer_true.lower() == 'true' else "False"
+                    question = {
+                        'type': "True/False",
+                        'name': name,
+                        'text': text,
+                        'answer': tf_value,
+                        'points': points
+                    }
+                elif q_type == 'shortanswer':
+                    correct_answer = ""
+                    ans = qelem.find('answer')
+                    if ans is not None:
+                        correct_answer = ans.findtext('text') or ""
+                    question = {
+                        'type': "Short Answer",
+                        'name': name,
+                        'text': text,
+                        'correct_answer': correct_answer,
+                        'points': points
+                    }
+                elif q_type == 'essay':
+                    question = {
+                        'type': "Essay",
+                        'name': name,
+                        'text': text,
+                        'points': points
+                    }
+                elif q_type == 'cloze':
+                    question = {
+                        'type': "Cloze",
+                        'name': name,
+                        'text': text,
+                        'points': points
+                    }
+                elif q_type == 'category':
+                    # categories are metadata; skip adding as a question but could be applied to the quiz if desired
+                    continue
+                else:
+                    # Unknown type: include basic fields
+                    question = {
+                        'type': q_type or "Unknown",
+                        'name': name,
+                        'text': text,
+                        'points': points
+                    }
+                self.loaded_questions.append(question)
+            self.update_question_listbox()
+        except Exception as e:
+            messagebox.showerror("Import Error", f"Failed to import XML: {e}")
+			
+    def export_quiz_mbz(self):
+        try:
+            # Pull quiz metadata from this tab
+            quiz_name = (self.quiz_title_entry.get() or "Quiz").strip()
+            intro_html = self.quiz_description_entry.get("1.0", tk.END).strip()
+
+            # Pull category + questions from the Question Builder tab
+            # The mainWindow stored it as self.quiz_builder (see your code)
+            main = self.root.master.master  # parent frame -> notebook frame -> root container
+            # A bit safer: walk up to find attribute 'quiz_builder'
+            app = None
+            parent = self.root
+            while parent is not None:
+                if hasattr(parent, "master"):
+                    parent = parent.master
+                else:
+                    break
+            # Actually, we have a direct handle in mainWindow: self.quiz_builder
+            # So better pass it into quizBuilder on creation; but with your code, we can reach via:
+            # The instance lives on the mainWindow as 'self.quiz_builder'
+            # Let's store a backref when quizBuilder is created. See patch below.
+            mw = getattr(self, "main_window_ref", None)
+            if mw is None or not hasattr(mw, "quiz_builder"):
+                tk.messagebox.showerror("Export", "Could not locate Question Builder in the main window.")
+                return
+
+            qb = mw.quiz_builder
+            category_name = qb.entry_category.get().strip() or "Default category"
+            questions = qb.questions[:]  # list of dicts you already build
+
+            if not questions:
+                tk.messagebox.showwarning("Export", "No questions found. Add questions in the Question Builder first.")
+                return
+
+            # Build the .mbz archive (bytes)
+            mbz_bytes = build_quiz_mbz(category_name, questions, quiz_name, intro_html)
+
+            # Save dialog
+            path = filedialog.asksaveasfilename(
+                defaultextension=".mbz",
+                filetypes=[("Moodle Backup", "*.mbz"), ("Zip", "*.zip")],
+                initialfile=f"{quiz_name or 'quiz'}.mbz"
+            )
+            if not path:
+                return
+            with open(path, "wb") as f:
+                f.write(mbz_bytes)
+            tk.messagebox.showinfo("Export", f"Exported Moodle backup:\n{os.path.basename(path)}")
+        except Exception as e:
+            tk.messagebox.showerror("Export Error", f"Failed to export .mbz: {e}")
+
+
+
+    def update_question_listbox(self):
+        self.listbox_questions.delete(0, tk.END)
+        for question in self.loaded_questions:
+            display_text = f"{question.get('type')}: {question.get('name')} - {question.get('text')} (Points: {question.get('points')})"
+            self.listbox_questions.insert(tk.END, display_text)
 class assignmentBuilder:
     def __init__(self, parent):
         self.root = parent
-        # Add widgets and logic here for assignment tab
+        assignment_name_label = tk.Label(self.root, text="Assignment Name").grid(row=0, column=0, padx=10, pady=10, sticky='e')
+        assignment_name_entry = tk.Entry(self.root, width=50)
+        assignment_name_entry.grid(row=0, column=1, padx=10, pady=10, sticky='we')
+        self.assignment_name_entry = assignment_name_entry
+
+        assignment_description_label = tk.Label(self.root, text="Assignment Description").grid(row=1, column=0, padx=10, pady=10, sticky='e')
+        assignment_description_entry = tk.Text(self.root, width=50, height=4)
+        assignment_description_entry.grid(row=1, column=1, padx=10, pady=10, sticky='we')
+        self.assignment_description_entry = assignment_description_entry
+
+        display_description_label = tk.Label(self.root, text="Display Description on Course Page").grid(row=2, column=0, padx=10, pady=10, sticky='w')
+        display_description_boolean = tk.Checkbutton(self.root)
+        display_description_boolean.grid(row=2, column=1, padx=10, pady=10, sticky='w')
+        self.display_description_boolean = display_description_boolean
+
+        point_value_label = tk.Label(self.root, text="Point Value").grid(row=3, column=0, padx=10, pady=10, sticky='e')
+        point_value_entry = tk.Entry(self.root, width=10)
+        point_value_entry.grid(row=3, column=1, padx=10, pady=10, sticky="w")
+        self.point_value_entry = point_value_entry
+
+        open_date_label = tk.Label(self.root, text="Open the assignment").grid(row=4, column=0, padx=10, pady=10, sticky='e')
+        self.cal_open = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
+        self.cal_open.grid(row=4, column=1, padx=10, pady=10, sticky='w')
+        hours = [f"{i:02d}" for i in range(24)]
+        minutes = [f"{i:02d}" for i in range(0, 60, 5)]
+        self.hour_var = tk.StringVar(value="00")
+        self.minute_var = tk.StringVar(value="00")
+        self.hour_menu = ttk.Combobox(self.root, textvariable=self.hour_var, values=hours, width=3)
+        self.hour_menu.grid(row=4, column=1, padx=(120,0), pady=10, sticky='w')
+        self.hour_menu.state(["readonly"])
+        self.minute_menu = ttk.Combobox(self.root, textvariable=self.minute_var, values=minutes, width=3)
+        self.minute_menu.grid(row=4, column=1, padx=(160,0), pady=10, sticky='w')
+        self.minute_menu.state(["readonly"])
+        self.am_pm_var = tk.StringVar(value="AM")
+        self.am_pm_menu = ttk.Combobox(self.root, textvariable=self.am_pm_var, values=["AM", "PM"], width=3)
+        self.am_pm_menu.grid(row=4, column=1, padx=(210,0), pady=10, sticky='w')
+        self.am_pm_menu.state(["readonly"])
+        # Close date/time widgets
+        tk.Label(self.root, text="Close the assignment").grid(row=5, column=0, padx=10, pady=10, sticky='e')
+        self.cal_close = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
+        self.cal_close.grid(row=5, column=1, padx=10, pady=10, sticky='w')
+        self.hour_close_var = tk.StringVar(value="00")
+        self.minute_close_var = tk.StringVar(value="00")
+        self.hour_close_menu = ttk.Combobox(self.root, textvariable=self.hour_close_var, values=hours, width=3)
+        self.hour_close_menu.grid(row=5, column=1, padx=(120,0), pady=10, sticky='w')
+        self.hour_close_menu.state(["readonly"])
+        self.minute_close_menu = ttk.Combobox(self.root, textvariable=self.minute_close_var, values=minutes, width=3)
+        self.minute_close_menu.grid(row=5, column=1, padx=(170,0), pady=10, sticky='w')
+        self.minute_close_menu.state(["readonly"])
+        self.am_pm_close_var = tk.StringVar(value="AM")
+        self.am_pm_close_menu = ttk.Combobox(self.root, textvariable=self.am_pm_close_var, values=["AM", "PM"], width=3)
+        self.am_pm_close_menu.grid(row=5, column=1, padx=(220,0), pady=10, sticky='w')
+        self.am_pm_close_menu.state(["readonly"])
         pass
+
+    def get_assignment_data(self):
+        data = {
+            "name": self.assignment_name_entry.get().strip(),
+            "description": self.assignment_description_entry.get("1.0", tk.END).strip(),
+            "display_description": bool(self.display_description_boolean.var.get()) if hasattr(self.display_description_boolean, 'var') else False,
+            "points": self.point_value_entry.get().strip(),
+            "open_date": self.cal_open.get(),
+            "open_hour": self.hour_var.get(),
+            "open_minute": self.minute_var.get(),
+            "open_am_pm": self.am_pm_var.get(),
+            "close_date": self.cal_close.get(),
+            "close_hour": self.hour_close_var.get(),
+            "close_minute": self.minute_close_var.get(),
+            "close_am_pm": self.am_pm_close_var.get(),
+        }
+        return data
 class forumBuilder:
     def __init__(self, parent):
         self.root = parent
-        # Add widgets and logic here for forum tab
+        forum_name_label = tk.Label(self.root, text="Forum Name").grid(row=0, column=0, padx=10, pady=10, sticky='e')
+        forum_name_entry = tk.Entry(self.root, width=50)
+        forum_name_entry.grid(row=0, column=1, padx=10, pady=10, sticky='we')
+        self.forum_name_entry = forum_name_entry
+
+        forum_description_label = tk.Label(self.root, text="Forum Description").grid(row=1, column=0, padx=10, pady=10, sticky='e')
+        forum_description_entry = tk.Text(self.root, width=50, height=4)
+        forum_description_entry.grid(row=1, column=1, padx=10, pady=10, sticky='we')
+        self.forum_description_entry = forum_description_entry
+
+        display_description_label = tk.Label(self.root, text="Display Description on Course Page").grid(row=2, column=0, padx=10, pady=10, sticky='w')
+        display_description_boolean = tk.Checkbutton(self.root)
+        display_description_boolean.grid(row=2, column=1, padx=10, pady=10, sticky='w')
+        self.display_description_boolean = display_description_boolean
+
+        point_value_label = tk.Label(self.root, text="Point Value").grid(row=3, column=0, padx=10, pady=10, sticky='e')
+        point_value_entry = tk.Entry(self.root, width=10)
+        point_value_entry.grid(row=3, column=1, padx=10, pady=10, sticky="w")
+        self.point_value_entry = point_value_entry
+
+        open_date_label = tk.Label(self.root, text="Open the forum").grid(row=4, column=0, padx=10, pady=10, sticky='e')
+        self.cal_open = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
+        self.cal_open.grid(row=4, column=1, padx=10, pady=10, sticky='w')
+        hours = [f"{i:02d}" for i in range(24)]
+        minutes = [f"{i:02d}" for i in range(0, 60, 5)]
+        self.hour_var = tk.StringVar(value="00")
+        self.minute_var = tk.StringVar(value="00")
+        self.hour_menu = ttk.Combobox(self.root, textvariable=self.hour_var, values=hours, width=3)
+        self.hour_menu.grid(row=4, column=1, padx=(120,0), pady=10, sticky='w')
+        self.hour_menu.state(["readonly"])
+        self.minute_menu = ttk.Combobox(self.root, textvariable=self.minute_var, values=minutes, width=3)
+        self.minute_menu.grid(row=4, column=1, padx=(160,0), pady=10, sticky='w')
+        self.minute_menu.state(["readonly"])
+        self.am_pm_var = tk.StringVar(value="AM")
+        self.am_pm_menu = ttk.Combobox(self.root, textvariable=self.am_pm_var, values=["AM", "PM"], width=3)
+        self.am_pm_menu.grid(row=4, column=1, padx=(210,0), pady=10, sticky='w')
+        self.am_pm_menu.state(["readonly"])
+        # Close date/time widgets
+        tk.Label(self.root, text="Close the forum").grid(row=5, column=0, padx=10, pady=10, sticky='e')
+        self.cal_close = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
+        self.cal_close.grid(row=5, column=1, padx=10, pady=10, sticky='w')
+        self.hour_close_var = tk.StringVar(value="00")
+        self.minute_close_var = tk.StringVar(value="00")
+        self.hour_close_menu = ttk.Combobox(self.root, textvariable=self.hour_close_var, values=hours, width=3)
+        self.hour_close_menu.grid(row=5, column=1, padx=(120,0), pady=10, sticky='w')
+        self.hour_close_menu.state(["readonly"])
+        self.minute_close_menu = ttk.Combobox(self.root, textvariable=self.minute_close_var, values=minutes, width=3)
+        self.minute_close_menu.grid(row=5, column=1, padx=(170,0), pady=10, sticky='w')
+        self.minute_close_menu.state(["readonly"])
+        self.am_pm_close_var = tk.StringVar(value="AM")
+        self.am_pm_close_menu = ttk.Combobox(self.root, textvariable=self.am_pm_close_var, values=["AM", "PM"], width=3)
+        self.am_pm_close_menu.grid(row=5, column=1, padx=(220,0), pady=10, sticky='w')
+        self.am_pm_close_menu.state(["readonly"])
         pass
+
+    def get_forum_data(self):
+        data = {
+            "name": self.forum_name_entry.get().strip(),
+            "description": self.forum_description_entry.get("1.0", tk.END).strip(),
+            "display_description": bool(self.display_description_boolean.var.get()) if hasattr(self.display_description_boolean, 'var') else False,
+            "points": self.point_value_entry.get().strip(),
+            "open_date": self.cal_open.get(),
+            "open_hour": self.hour_var.get(),
+            "open_minute": self.minute_var.get(),
+            "open_am_pm": self.am_pm_var.get(),
+            "close_date": self.cal_close.get(),
+            "close_hour": self.hour_close_var.get(),
+            "close_minute": self.minute_close_var.get(),
+            "close_am_pm": self.am_pm_close_var.get(),
+        }
+        return data
 ## MAIN APPLICATION LOOP
 if __name__ == "__main__":
     try:
