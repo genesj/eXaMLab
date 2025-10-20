@@ -668,26 +668,26 @@ class quizBuilder:
         tk.Label(self.root, text="Open the quiz").grid(row=4, column=0, padx=10, pady=10, sticky='e')
         cal_open = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
         cal_open.grid(row=4, column=1, padx=10, pady=10, sticky='w')
-        hours = [f"{i:02d}" for i in range(24)]
-        minutes = [f"{i:02d}" for i in range(0, 60, 5)]
-        hour_var = tk.StringVar(value="00")
-        minute_var = tk.StringVar(value="00")
-        hour_menu = ttk.Combobox(self.root, textvariable=hour_var, values=hours, width=3)
-        hour_menu.grid(row=4, column=1, padx=(120,0), pady=10, sticky='w')
-        hour_menu.state(["readonly"])
-        minute_menu = ttk.Combobox(self.root, textvariable=minute_var, values=minutes, width=3)
-        minute_menu.grid(row=4, column=1, padx=(170,0), pady=10, sticky='w')
-        minute_menu.state(["readonly"])
-        am_pm_menu = ttk.Combobox(self.root, values=["AM", "PM"], width=3)
-        am_pm_menu.grid(row=4, column=1, padx=(220,0), pady=10, sticky='w')
-        am_pm_menu.state(["readonly"])
+        self.hours_open = [f"{i:02d}" for i in range(24)]
+        self.minutes_open = [f"{i:02d}" for i in range(0, 60, 5)]
+        self.hour_open_var = tk.StringVar(value="00")
+        self.minute_open_var = tk.StringVar(value="00")
+        hour_open_menu = ttk.Combobox(self.root, textvariable=hour_var, values=hours, width=3)
+        hour_open_menu.grid(row=4, column=1, padx=(120,0), pady=10, sticky='w')
+        hour_open_menu.state(["readonly"])
+        minute_open_menu = ttk.Combobox(self.root, textvariable=minute_var, values=minutes, width=3)
+        minute_open_menu.grid(row=4, column=1, padx=(170,0), pady=10, sticky='w')
+        minute_open_menu.state(["readonly"])
+        am_pm_open_menu = ttk.Combobox(self.root, values=["AM", "PM"], width=3)
+        am_pm_open_menu.grid(row=4, column=1, padx=(220,0), pady=10, sticky='w')
+        am_pm_open_menu.state(["readonly"])
         tk.Label(self.root, text="Close the quiz").grid(row=5, column=0, padx=10, pady=10, sticky='e')
         cal_close = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
         cal_close.grid(row=5, column=1, padx=10, pady=10, sticky='w')
-        hours_close = [f"{i:02d}" for i in range(24)]
-        minutes_close = [f"{i:02d}" for i in range(0, 60, 5)]
-        hour_close_var = tk.StringVar(value="00")
-        minute_close_var = tk.StringVar(value="00")
+        self.hours_close = [f"{i:02d}" for i in range(24)]
+        self.minutes_close = [f"{i:02d}" for i in range(0, 60, 5)]
+        self.hour_close_var = tk.StringVar(value="00")
+        self.minute_close_var = tk.StringVar(value="00")
         hour_close_menu = ttk.Combobox(self.root, textvariable=hour_var, values=hours, width=3)
         hour_close_menu.grid(row=5, column=1, padx=(120,0), pady=10, sticky='w')
         hour_close_menu.state(["readonly"])
@@ -697,10 +697,10 @@ class quizBuilder:
         am_pm_close_menu = ttk.Combobox(self.root, values=["AM", "PM"], width=3)
         am_pm_close_menu.grid(row=5, column=1, padx=(220,0), pady=10, sticky='w')
         am_pm_close_menu.state(["readonly"])
-        time_limit_label = tk.Label(self.root, text="Time limit").grid(row=6, column=0, padx=10, pady=10, sticky='e')
-        time_limit_entry = tk.Entry(self.root, width=4).grid(row=6, column=1, padx=10, pady=10, sticky="w")
-        attempts_allowed_label = tk.Label(self.root, text="Attempts allowed").grid(row=7, column=0, padx=10, pady=10, sticky='e')
-        attempts_allowed_entry = tk.Entry(self.root, width=4).grid(row=7, column=1, padx=10, pady=10, sticky="w")
+        self.time_limit_label = tk.Label(self.root, text="Time limit").grid(row=6, column=0, padx=10, pady=10, sticky='e')
+        self.time_limit_entry = tk.Entry(self.root, width=4).grid(row=6, column=1, padx=10, pady=10, sticky="w")
+        self.attempts_allowed_label = tk.Label(self.root, text="Attempts allowed").grid(row=7, column=0, padx=10, pady=10, sticky='e')
+        self.attempts_allowed_entry = tk.Entry(self.root, width=4).grid(row=7, column=1, padx=10, pady=10, sticky="w")
         # Label + help for loaded questions
         self.loaded_questions_label_frame = tk.Frame(self.root)
         self.loaded_questions_label_frame.grid(row=8, column=0, columnspan=2, padx=10, sticky='we')
