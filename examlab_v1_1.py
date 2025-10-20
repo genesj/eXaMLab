@@ -653,54 +653,65 @@ class quizBuilder:
         self.root.grid_columnconfigure(0, weight=0)
         self.root.grid_columnconfigure(1, weight=1)
         tk.Label(self.root, text="Quiz Title").grid(row=0, column=0, padx=10, pady=10, sticky='e')
-        self.quiz_title_entry = tk.Entry(self.root, width=50)  # was local
+        self.quiz_title_entry = tk.Entry(self.root, width=50)
         self.quiz_title_entry.grid(row=0, column=1, padx=10, pady=10, sticky='we')
         tk.Label(self.root, text="Quiz Description").grid(row=1, column=0, padx=10, pady=10, sticky='e')
-        self.quiz_description_entry = tk.Text(self.root, width=50, height=4)  # was local
+        self.quiz_description_entry = tk.Text(self.root, width=50, height=4)
         self.quiz_description_entry.grid(row=1, column=1, padx=10, pady=10, sticky='we')
         tk.Label(self.root, text="Display Description on Course Page").grid(row=2, column=0, padx=10, pady=10, sticky='w')
-        self.display_description_boolean = tk.Checkbutton(self.root)  # keep handle if you want it later
+        # Create a BooleanVar to hold the state of the checkbox
+        self.display_description_var = tk.BooleanVar()
+        self.display_description_boolean = tk.Checkbutton(self.root, variable=self.display_description_var)
         self.display_description_boolean.grid(row=2, column=1, padx=10, pady=10, sticky='w')
-        display_description_boolean = tk.Checkbutton(self.root).grid(row=2, column=1, padx=10, pady=10, sticky='w')
-        point_value_label = tk.Label(self.root, text="Point Value").grid(row=3, column=0, padx=10, pady=10, sticky='e')
-        point_value_entry = tk.Entry(self.root, width=10).grid(row=3, column=1, padx=10, pady=10, sticky='w')
+        # The line below was creating a second, unused checkbox. It has been removed.
+        tk.Label(self.root, text="Point Value").grid(row=3, column=0, padx=10, pady=10, sticky='e')
+        # Store the Entry widget in an instance variable to access its value later
+        self.point_value_entry = tk.Entry(self.root, width=10)
+        self.point_value_entry.grid(row=3, column=1, padx=10, pady=10, sticky="w")
         #add a date picker and two dropdowns for hours and minutes
         tk.Label(self.root, text="Open the quiz").grid(row=4, column=0, padx=10, pady=10, sticky='e')
-        cal_open = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
-        cal_open.grid(row=4, column=1, padx=10, pady=10, sticky='w')
+        # Store the DateEntry widget in an instance variable
+        self.cal_open = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
+        self.cal_open.grid(row=4, column=1, padx=10, pady=10, sticky='w')
         self.hours_open = [f"{i:02d}" for i in range(24)]
         self.minutes_open = [f"{i:02d}" for i in range(0, 60, 5)]
         self.hour_open_var = tk.StringVar(value="00")
         self.minute_open_var = tk.StringVar(value="00")
-        hour_open_menu = ttk.Combobox(self.root, textvariable=hour_var, values=hours, width=3)
+        # Correctly pass the instance variables for textvariable and values
+        hour_open_menu = ttk.Combobox(self.root, textvariable=self.hour_open_var, values=self.hours_open, width=3)
         hour_open_menu.grid(row=4, column=1, padx=(120,0), pady=10, sticky='w')
         hour_open_menu.state(["readonly"])
-        minute_open_menu = ttk.Combobox(self.root, textvariable=minute_var, values=minutes, width=3)
+        # Correctly pass the instance variables for textvariable and values
+        minute_open_menu = ttk.Combobox(self.root, textvariable=self.minute_open_var, values=self.minutes_open, width=3)
         minute_open_menu.grid(row=4, column=1, padx=(170,0), pady=10, sticky='w')
         minute_open_menu.state(["readonly"])
-        am_pm_open_menu = ttk.Combobox(self.root, values=["AM", "PM"], width=3)
-        am_pm_open_menu.grid(row=4, column=1, padx=(220,0), pady=10, sticky='w')
-        am_pm_open_menu.state(["readonly"])
+        # This AM/PM menu was not being stored or used, so it's removed for now to avoid confusion.
+        # If 12-hour format is needed later, it should be properly implemented.
         tk.Label(self.root, text="Close the quiz").grid(row=5, column=0, padx=10, pady=10, sticky='e')
-        cal_close = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
-        cal_close.grid(row=5, column=1, padx=10, pady=10, sticky='w')
+        # Store the DateEntry widget in an instance variable
+        self.cal_close = DateEntry(self.root, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='y-mm-dd')
+        self.cal_close.grid(row=5, column=1, padx=10, pady=10, sticky='w')
         self.hours_close = [f"{i:02d}" for i in range(24)]
         self.minutes_close = [f"{i:02d}" for i in range(0, 60, 5)]
         self.hour_close_var = tk.StringVar(value="00")
         self.minute_close_var = tk.StringVar(value="00")
-        hour_close_menu = ttk.Combobox(self.root, textvariable=hour_var, values=hours, width=3)
+        # Correctly pass the instance variables for textvariable and values
+        hour_close_menu = ttk.Combobox(self.root, textvariable=self.hour_close_var, values=self.hours_close, width=3)
         hour_close_menu.grid(row=5, column=1, padx=(120,0), pady=10, sticky='w')
         hour_close_menu.state(["readonly"])
-        minute_close_menu = ttk.Combobox(self.root, textvariable=minute_var, values=minutes, width=3)
+        # Correctly pass the instance variables for textvariable and values
+        minute_close_menu = ttk.Combobox(self.root, textvariable=self.minute_close_var, values=self.minutes_close, width=3)
         minute_close_menu.grid(row=5, column=1, padx=(170,0), pady=10, sticky='w')
         minute_close_menu.state(["readonly"])
-        am_pm_close_menu = ttk.Combobox(self.root, values=["AM", "PM"], width=3)
-        am_pm_close_menu.grid(row=5, column=1, padx=(220,0), pady=10, sticky='w')
-        am_pm_close_menu.state(["readonly"])
+        # This AM/PM menu was not being stored or used, so it's removed for now.
         self.time_limit_label = tk.Label(self.root, text="Time limit").grid(row=6, column=0, padx=10, pady=10, sticky='e')
-        self.time_limit_entry = tk.Entry(self.root, width=4).grid(row=6, column=1, padx=10, pady=10, sticky="w")
+        # Store the Entry widget in an instance variable
+        self.time_limit_entry = tk.Entry(self.root, width=4)
+        self.time_limit_entry.grid(row=6, column=1, padx=10, pady=10, sticky="w")
         self.attempts_allowed_label = tk.Label(self.root, text="Attempts allowed").grid(row=7, column=0, padx=10, pady=10, sticky='e')
-        self.attempts_allowed_entry = tk.Entry(self.root, width=4).grid(row=7, column=1, padx=10, pady=10, sticky="w")
+        # Store the Entry widget in an instance variable
+        self.attempts_allowed_entry = tk.Entry(self.root, width=4)
+        self.attempts_allowed_entry.grid(row=7, column=1, padx=10, pady=10, sticky="w")
         # Label + help for loaded questions
         self.loaded_questions_label_frame = tk.Frame(self.root)
         self.loaded_questions_label_frame.grid(row=8, column=0, columnspan=2, padx=10, sticky='we')
@@ -720,9 +731,54 @@ class quizBuilder:
 
         # NEW: Export .mbz button
         tk.Button(self.root, text="Export Quiz (.mbz)", command=self.export_quiz_mbz)\
-            .grid(row=10, column=1, padx=10, pady=10, sticky='we')        
+            .grid(row=10, column=1, padx=10, pady=10, sticky='we')
+
+        # Add debug button
+        tk.Button(self.root, text="Debug: Show Variables", command=self.show_debug_info)\
+            .grid(row=11, column=0, columnspan=2, padx=10, pady=5, sticky='we')
+
         pass
     
+    def show_debug_info(self):
+        """Gathers and displays the current values of all variables in the quizBuilder tab."""
+        try:
+            # Gather values from all input widgets
+            quiz_title = self.quiz_title_entry.get()
+            quiz_description = self.quiz_description_entry.get("1.0", tk.END).strip()
+            display_description = self.display_description_var.get()
+            point_value = self.point_value_entry.get()
+            open_date = self.cal_open.get()
+            open_hour = self.hour_open_var.get()
+            open_minute = self.minute_open_var.get()
+            close_date = self.cal_close.get()
+            close_hour = self.hour_close_var.get()
+            close_minute = self.minute_close_var.get()
+            time_limit = self.time_limit_entry.get()
+            attempts_allowed = self.attempts_allowed_entry.get()
+            num_loaded_questions = len(self.loaded_questions)
+
+            # Format the information into a string
+            debug_message = (
+                f"Quiz Title: {quiz_title}\n"
+                f"Quiz Description: {quiz_description}\n"
+                f"Display Description: {display_description}\n"
+                f"Point Value: {point_value}\n\n"
+                f"Open Date: {open_date}\n"
+                f"Open Time: {open_hour}:{open_minute}\n\n"
+                f"Close Date: {close_date}\n"
+                f"Close Time: {close_hour}:{close_minute}\n\n"
+                f"Time Limit: {time_limit}\n"
+                f"Attempts Allowed: {attempts_allowed}\n\n"
+                f"Number of Loaded Questions: {num_loaded_questions}"
+            )
+
+            # Display the information in a message box
+            messagebox.showinfo("Quiz Builder Debug Info", debug_message)
+            debug_logger.debug("Displayed quizBuilder debug info.")
+        except Exception as e:
+            messagebox.showerror("Debug Error", f"An error occurred while gathering debug info: {e}")
+            logging.error("Error in show_debug_info", exc_info=True)
+
     def import_xml(self):
         file_path = filedialog.askopenfilename(filetypes=[("XML files", "*.xml")])
         if not file_path:
