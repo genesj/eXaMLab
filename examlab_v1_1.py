@@ -2,6 +2,7 @@
 ## Version 1.1 - MacOS compatibility
 #region This collapse is just a bunch of housekeeping: logging, tooltips, windows icon
 import os
+import copy
 import logging
 import platform
 import tkinter as tk
@@ -101,6 +102,7 @@ class mainWindow:
             # Create question builder tab
             question_tab = ttk.Frame(self.notebook)
             self.quiz_builder = questionBuilder(question_tab)
+            self.quiz_builder.main_window_ref = self
             self.notebook.add(question_tab, text="Question Builder")
             # Create quiz tab (blank)
             quiz_tab = ttk.Frame(self.notebook)
@@ -129,6 +131,7 @@ class questionBuilder:
             self.edit_mode = False
             self.edit_index = None
             self.mcq_option_entries = []
+            self.main_window_ref = None
             self.setup_quizBuilder_UI()
             debug_logger.debug("User interface setup complete")
         except Exception as e:
@@ -447,8 +450,24 @@ class questionBuilder:
             for question in self.questions:
                 display_text = f"{question['type']}: {question['name']} - {question['text']} (Points: {question['points']})"
                 self.listbox_questions.insert(tk.END, display_text)
+            self.sync_loaded_questions()
         except Exception as e:
             logging.error("Error updating question list", exc_info=True)
+
+    def replace_questions(self, questions):
+        try:
+            self.questions = [copy.deepcopy(question) for question in questions]
+            self.update_question_list()
+        except Exception as e:
+            logging.error("Error replacing questions", exc_info=True)
+
+    def sync_loaded_questions(self):
+        try:
+            main_window = getattr(self, "main_window_ref", None)
+            if main_window and hasattr(main_window, "quiz_tab"):
+                main_window.quiz_tab.update_loaded_questions_from_question_builder(self.questions)
+        except Exception as e:
+            logging.error("Error syncing loaded questions", exc_info=True)
     def edit_question(self):
         try:
             selected_indices = list(self.listbox_questions.curselection())
@@ -652,6 +671,7 @@ class quizBuilder:
         self.root = parent
         self.root.grid_columnconfigure(0, weight=0)
         self.root.grid_columnconfigure(1, weight=1)
+        self.main_window_ref = None
         tk.Label(self.root, text="Quiz Title").grid(row=0, column=0, padx=10, pady=10, sticky='e')
         self.quiz_title_entry = tk.Entry(self.root, width=50)
         self.quiz_title_entry.grid(row=0, column=1, padx=10, pady=10, sticky='we')
@@ -786,7 +806,7 @@ class quizBuilder:
         try:
             tree = ET.parse(file_path)
             root = tree.getroot()
-            self.loaded_questions.clear()
+            imported_questions = []
             for qelem in root.findall('question'):
                 q_type = qelem.get('type', '').lower()
                 # name/text and questiontext/text
@@ -871,11 +891,16 @@ class quizBuilder:
                         'text': text,
                         'points': points
                     }
-                self.loaded_questions.append(question)
-            self.update_question_listbox()
+                imported_questions.append(question)
+            qb = self.get_question_builder()
+            if qb is not None:
+                qb.replace_questions(imported_questions)
+            else:
+                self.loaded_questions = [copy.deepcopy(question) for question in imported_questions]
+                self.update_question_listbox()
         except Exception as e:
             messagebox.showerror("Import Error", f"Failed to import XML: {e}")
-			
+
     def export_quiz_mbz(self):
         try:
             # Pull quiz metadata from this tab
@@ -883,26 +908,11 @@ class quizBuilder:
             intro_html = self.quiz_description_entry.get("1.0", tk.END).strip()
 
             # Pull category + questions from the Question Builder tab
-            # The mainWindow stored it as self.quiz_builder (see your code)
-            main = self.root.master.master  # parent frame -> notebook frame -> root container
-            # A bit safer: walk up to find attribute 'quiz_builder'
-            app = None
-            parent = self.root
-            while parent is not None:
-                if hasattr(parent, "master"):
-                    parent = parent.master
-                else:
-                    break
-            # Actually, we have a direct handle in mainWindow: self.quiz_builder
-            # So better pass it into quizBuilder on creation; but with your code, we can reach via:
-            # The instance lives on the mainWindow as 'self.quiz_builder'
-            # Let's store a backref when quizBuilder is created. See patch below.
-            mw = getattr(self, "main_window_ref", None)
-            if mw is None or not hasattr(mw, "quiz_builder"):
+            qb = self.get_question_builder()
+            if qb is None:
                 tk.messagebox.showerror("Export", "Could not locate Question Builder in the main window.")
                 return
 
-            qb = mw.quiz_builder
             category_name = qb.entry_category.get().strip() or "Default category"
             questions = qb.questions[:]  # list of dicts you already build
 
@@ -934,6 +944,16 @@ class quizBuilder:
         for question in self.loaded_questions:
             display_text = f"{question.get('type')}: {question.get('name')} - {question.get('text')} (Points: {question.get('points')})"
             self.listbox_questions.insert(tk.END, display_text)
+
+    def update_loaded_questions_from_question_builder(self, questions):
+        self.loaded_questions = [copy.deepcopy(question) for question in questions]
+        self.update_question_listbox()
+
+    def get_question_builder(self):
+        mw = getattr(self, "main_window_ref", None)
+        if mw and hasattr(mw, "quiz_builder"):
+            return mw.quiz_builder
+        return None
 class assignmentBuilder:
     def __init__(self, parent):
         self.root = parent
