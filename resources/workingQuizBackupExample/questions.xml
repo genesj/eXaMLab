@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<question_categories>
+  <question_category id="3487">
+    <name>top</name>
+    <contextid>7589</contextid>
+    <contextlevel>70</contextlevel>
+    <contextinstanceid>5231</contextinstanceid>
+    <info></info>
+    <infoformat>0</infoformat>
+    <stamp>mdev.lanecc.edu+251021181015+6AaT81</stamp>
+    <parent>0</parent>
+    <sortorder>0</sortorder>
+    <idnumber>$@NULL@$</idnumber>
+    <question_bank_entries>
+    </question_bank_entries>
+  </question_category>
+  <question_category id="3488">
+    <name>Default for workingQuizExport</name>
+    <contextid>7589</contextid>
+    <contextlevel>70</contextlevel>
+    <contextinstanceid>5231</contextinstanceid>
+    <info>The default category for questions shared in context 'workingQuizExport'.</info>
+    <infoformat>0</infoformat>
+    <stamp>mdev.lanecc.edu+251021181015+0PG8Pr</stamp>
+    <parent>3487</parent>
+    <sortorder>999</sortorder>
+    <idnumber>$@NULL@$</idnumber>
+    <question_bank_entries>
+    </question_bank_entries>
+  </question_category>
+  <question_category id="3489">
+    <name>top</name>
+    <contextid>7585</contextid>
+    <contextlevel>50</contextlevel>
+    <contextinstanceid>246</contextinstanceid>
+    <info></info>
+    <infoformat>0</infoformat>
+    <stamp>mdev.lanecc.edu+251021181015+v0DkOF</stamp>
+    <parent>0</parent>
+    <sortorder>0</sortorder>
+    <idnumber>$@NULL@$</idnumber>
+    <question_bank_entries>
+    </question_bank_entries>
+  </question_category>
+  <question_category id="3490">
+    <name>Default for eXaMLab City (Smith-James)</name>
+    <contextid>7585</contextid>
+    <contextlevel>50</contextlevel>
+    <contextinstanceid>246</contextinstanceid>
+    <info>The default category for questions shared in context 'eXaMLab City (Smith-James)'.</info>
+    <infoformat>0</infoformat>
+    <stamp>mdev.lanecc.edu+251021181015+XzulCk</stamp>
+    <parent>3489</parent>
+    <sortorder>999</sortorder>
+    <idnumber>$@NULL@$</idnumber>
+    <question_bank_entries>
+      <question_bank_entry id="68688">
+        <questioncategoryid>3490</questioncategoryid>
+        <idnumber>$@NULL@$</idnumber>
+        <ownerid>36</ownerid>
+        <question_version>
+          <question_versions id="69183">
+            <version>1</version>
+            <status>ready</status>
+            <questions>
+              <question id="69224">
+                <parent>0</parent>
+                <name>testQuestion</name>
+                <questiontext>&lt;p&gt;The capital of Mongolia is Paris.&lt;/p&gt;</questiontext>
+                <questiontextformat>1</questiontextformat>
+                <generalfeedback></generalfeedback>
+                <generalfeedbackformat>1</generalfeedbackformat>
+                <defaultmark>1.0000000</defaultmark>
+                <penalty>1.0000000</penalty>
+                <qtype>truefalse</qtype>
+                <length>1</length>
+                <stamp>mdev.lanecc.edu+251021181036+JsHs9K</stamp>
+                <timecreated>1761070236</timecreated>
+                <timemodified>1761070236</timemodified>
+                <createdby>36</createdby>
+                <modifiedby>36</modifiedby>
+                <plugin_qtype_truefalse_question>
+                  <answers>
+                    <answer id="204162">
+                      <answertext>True</answertext>
+                      <answerformat>0</answerformat>
+                      <fraction>0.0000000</fraction>
+                      <feedback></feedback>
+                      <feedbackformat>1</feedbackformat>
+                    </answer>
+                    <answer id="204163">
+                      <answertext>False</answertext>
+                      <answerformat>0</answerformat>
+                      <fraction>1.0000000</fraction>
+                      <feedback></feedback>
+                      <feedbackformat>1</feedbackformat>
+                    </answer>
+                  </answers>
+                  <truefalse id="10752">
+                    <trueanswer>204162</trueanswer>
+                    <falseanswer>204163</falseanswer>
+                    <showstandardinstruction>0</showstandardinstruction>
+                  </truefalse>
+                </plugin_qtype_truefalse_question>
+                <plugin_qbank_comment_question>
+                  <comments>
+                  </comments>
+                </plugin_qbank_comment_question>
+                <plugin_qbank_customfields_question>
+                  <customfields>
+                  </customfields>
+                </plugin_qbank_customfields_question>
+                <question_hints>
+                </question_hints>
+                <tags>
+                </tags>
+              </question>
+            </questions>
+          </question_versions>
+        </question_version>
+      </question_bank_entry>
+    </question_bank_entries>
+  </question_category>
+</question_categories>
