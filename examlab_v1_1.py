@@ -3,6 +3,7 @@
 #region This collapse is just a bunch of housekeeping: logging, tooltips, windows icon
 import os
 import copy
+import html
 import io
 import logging
 import platform
@@ -374,7 +375,10 @@ def build_quiz_activity_xml(
     quiz = ET.SubElement(root, "quiz", {"id": str(quiz_id)})
     ET.SubElement(quiz, "name").text = quiz_name or "Quiz"
 
-    intro_text = intro_html if intro_html else " "
+    raw_intro = intro_html or ""
+    intro_text = html.escape(raw_intro, quote=False)
+    if not intro_text.strip():
+        intro_text = "&nbsp;"
     ET.SubElement(quiz, "intro").text = intro_text
     ET.SubElement(quiz, "introformat").text = "1"
 
