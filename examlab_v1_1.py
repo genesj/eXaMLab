@@ -373,8 +373,12 @@ def build_quiz_activity_xml(
 
     quiz = ET.SubElement(root, "quiz", {"id": str(quiz_id)})
     ET.SubElement(quiz, "name").text = quiz_name or "Quiz"
-    ET.SubElement(quiz, "intro").text = intro_html or ""
-    ET.SubElement(quiz, "introformat").text = "1"
+
+    intro_wrapper = ET.SubElement(quiz, "intro")
+    intro_text = ET.SubElement(intro_wrapper, "text")
+    intro_text.text = intro_html or ""
+    ET.SubElement(intro_wrapper, "format").text = "1"
+    ET.SubElement(intro_wrapper, "files")
 
     ET.SubElement(quiz, "timeopen").text = "0"
     ET.SubElement(quiz, "timeclose").text = "0"
