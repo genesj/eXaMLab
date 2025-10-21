@@ -11,7 +11,7 @@ import zipfile
 import tkinter as tk
 from tkinter import messagebox, filedialog, ttk, Text
 import xml.etree.ElementTree as ET
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 # import DateEntry used in quizBuilder; Calendar is optional if you need it elsewhere
 from tkcalendar import DateEntry
 basedir = os.path.dirname(__file__)
@@ -245,8 +245,12 @@ def build_questions_xml(category_name: str, questions: List[Dict[str, Any]]) -> 
         ET.SubElement(qnode, "plugin_outcomesupport_qtype_question").append(ET.Element("outcome_areas"))
         ET.SubElement(qnode, "question_hints")
 
+    question_ids: List[int] = []
+    entry_ids_record: List[int] = []
+
     for idx, q in enumerate(questions):
         entry_id = 12300000 + idx
+        entry_ids_record.append(entry_id)
         e = ET.SubElement(entries, "question_bank_entry", {"id": str(entry_id)})
         ET.SubElement(e, "questioncategoryid").text = "1001"
         ET.SubElement(e, "idnumber").text = "$@NULL@$"
@@ -257,7 +261,9 @@ def build_questions_xml(category_name: str, questions: List[Dict[str, Any]]) -> 
         ET.SubElement(qv, "version").text = "1"
         ET.SubElement(qv, "status").text = "ready"
 
-        qnode = ET.SubElement(qv, "question", {"id": str(35640000 + idx)})
+        question_id = 35640000 + idx
+        question_ids.append(question_id)
+        qnode = ET.SubElement(qv, "question", {"id": str(question_id)})
 
         qtype_in = (q.get("type") or "multichoice").strip().lower()
         if qtype_in in ("multiple choice", "multichoice"):
@@ -348,6 +354,8 @@ def build_questions_xml(category_name: str, questions: List[Dict[str, Any]]) -> 
         ET.SubElement(qnode, "plugin_outcomesupport_qtype_question").append(ET.Element("outcome_areas"))
         ET.SubElement(qnode, "question_hints")
 
+    build_questions_xml._last_question_ids = question_ids
+    build_questions_xml._last_entry_ids = entry_ids_record
     return _et_to_bytes(root)
 
 
@@ -356,6 +364,7 @@ def build_quiz_activity_xml(
     quiz_name: str,
     intro_html: str = "",
     entry_ids: list[int] | None = None,
+    question_infos: List[Dict[str, Any]] | None = None,
     per_slot_maxmark: float = 1.0,
 ) -> bytes:
     activity_id = 260000
@@ -404,17 +413,62 @@ def build_quiz_activity_xml(
     ET.SubElement(quiz, "questionsperpage").text = "5"
     ET.SubElement(quiz, "navmethod").text = "free"
     ET.SubElement(quiz, "shuffleanswers").text = "0"
-    ET.SubElement(quiz, "question_instances")
+    question_instances = ET.SubElement(quiz, "question_instances")
+
+    slots_node = ET.SubElement(quiz, "slots")
 
     sections = ET.SubElement(quiz, "sections")
-    if entry_ids:
+    if entry_ids or question_infos:
         sec = ET.SubElement(sections, "section", {"id": "1"})
         ET.SubElement(sec, "firstslot").text = "1"
         ET.SubElement(sec, "shufflequestions").text = "0"
+        ET.SubElement(sec, "slotcount").text = str(len(question_infos or entry_ids or []))
 
     total = 0.0
-    ET.SubElement(quiz, "sumgrades").text = "0.00000"
-    ET.SubElement(quiz, "grade").text = "0.00000"
+
+    if question_infos:
+        for slot_index, info in enumerate(question_infos, start=1):
+            question_id = int(info.get("question_id", 0))
+            maxmark = float(info.get("maxmark", per_slot_maxmark) or per_slot_maxmark)
+            qi = ET.SubElement(question_instances, "question_instance", {"id": str(500000 + slot_index)})
+            ET.SubElement(qi, "slot").text = str(slot_index)
+            ET.SubElement(qi, "questionid").text = str(question_id)
+            ET.SubElement(qi, "maxmark").text = f"{maxmark:.5f}"
+
+            slot = ET.SubElement(slots_node, "slot", {"id": str(540000 + slot_index)})
+            ET.SubElement(slot, "slotnumber").text = str(slot_index)
+            ET.SubElement(slot, "quizpage").text = "1"
+            ET.SubElement(slot, "requireprevious").text = "0"
+            ET.SubElement(slot, "questionid").text = str(question_id)
+            ET.SubElement(slot, "questioninstanceid").text = str(500000 + slot_index)
+            ET.SubElement(slot, "maxmark").text = f"{maxmark:.5f}"
+            ET.SubElement(slot, "minmark").text = "0.00000"
+
+            total += maxmark
+    elif entry_ids:
+        for slot_index, entry_id in enumerate(entry_ids, start=1):
+            maxmark = per_slot_maxmark
+            qi = ET.SubElement(question_instances, "question_instance", {"id": str(500000 + slot_index)})
+            ET.SubElement(qi, "slot").text = str(slot_index)
+            ET.SubElement(qi, "questionid").text = str(entry_id)
+            ET.SubElement(qi, "maxmark").text = f"{maxmark:.5f}"
+
+            slot = ET.SubElement(slots_node, "slot", {"id": str(540000 + slot_index)})
+            ET.SubElement(slot, "slotnumber").text = str(slot_index)
+            ET.SubElement(slot, "quizpage").text = "1"
+            ET.SubElement(slot, "requireprevious").text = "0"
+            ET.SubElement(slot, "questionid").text = str(entry_id)
+            ET.SubElement(slot, "questioninstanceid").text = str(500000 + slot_index)
+            ET.SubElement(slot, "maxmark").text = f"{maxmark:.5f}"
+            ET.SubElement(slot, "minmark").text = "0.00000"
+
+            total += maxmark
+    else:
+        quiz.remove(slots_node)
+        quiz.remove(question_instances)
+
+    ET.SubElement(quiz, "sumgrades").text = f"{total:.5f}"
+    ET.SubElement(quiz, "grade").text = f"{total:.5f}" if total else "0.00000"
 
     now = str(_now_unix())
     ET.SubElement(quiz, "timecreated").text = now
@@ -477,17 +531,17 @@ def build_module_xml(
 
 
 def build_moodle_backup_xml(
-    moduleid: int,
-    quiz_title: str,
+    modules: List[Dict[str, Any]],
     original_wwwroot: str = "https://example.invalid",
 ) -> bytes:
+    if not modules:
+        raise ValueError("At least one module is required to generate a Moodle backup manifest.")
     root = ET.Element("moodle_backup")
     info = ET.SubElement(root, "information")
 
     stamp = time.strftime("%Y%m%d-%H%M", time.localtime())
-    ET.SubElement(info, "name").text = (
-        f"backup-moodle2-activity-{moduleid}-quiz{moduleid}-{stamp}.mbz"
-    )
+    archive_name = f"backup-moodle2-activities-{len(modules)}-{stamp}.mbz"
+    ET.SubElement(info, "name").text = archive_name
     ET.SubElement(info, "moodle_version").text = "2024100705"
     ET.SubElement(info, "moodle_release").text = "4.5.5 (Build: 20250609)"
     ET.SubElement(info, "backup_version").text = "2024100700"
@@ -508,23 +562,27 @@ def build_moodle_backup_xml(
     ET.SubElement(info, "original_system_contextid").text = "1"
 
     details = ET.SubElement(info, "details")
-    detail = ET.SubElement(details, "detail", {"backup_id": f"id_{_uniq_suffix()}"})
-    ET.SubElement(detail, "type").text = "activity"
-    ET.SubElement(detail, "format").text = "moodle2"
-    ET.SubElement(detail, "interactive").text = "1"
-    ET.SubElement(detail, "mode").text = "10"
-    ET.SubElement(detail, "execution").text = "1"
-    ET.SubElement(detail, "executiontime").text = "0"
+    for _ in modules:
+        detail = ET.SubElement(details, "detail", {"backup_id": f"id_{_uniq_suffix()}"})
+        ET.SubElement(detail, "type").text = "activity"
+        ET.SubElement(detail, "format").text = "moodle2"
+        ET.SubElement(detail, "interactive").text = "1"
+        ET.SubElement(detail, "mode").text = "10"
+        ET.SubElement(detail, "execution").text = "1"
+        ET.SubElement(detail, "executiontime").text = "0"
 
     contents = ET.SubElement(info, "contents")
     activities = ET.SubElement(contents, "activities")
-    act = ET.SubElement(activities, "activity")
-    ET.SubElement(act, "moduleid").text = str(moduleid)
-    ET.SubElement(act, "sectionid").text = "$@NULL@$"
-    ET.SubElement(act, "modulename").text = "quiz"
-    ET.SubElement(act, "title").text = quiz_title or "Quiz"
-    ET.SubElement(act, "directory").text = f"activities/quiz_{moduleid}"
-    ET.SubElement(act, "insubsection").text = ""
+    for module in modules:
+        module_id = int(module.get("moduleid", 0))
+        module_title = module.get("title", "Quiz") or "Quiz"
+        act = ET.SubElement(activities, "activity")
+        ET.SubElement(act, "moduleid").text = str(module_id)
+        ET.SubElement(act, "sectionid").text = "$@NULL@$"
+        ET.SubElement(act, "modulename").text = "quiz"
+        ET.SubElement(act, "title").text = module_title
+        ET.SubElement(act, "directory").text = f"activities/quiz_{module_id}"
+        ET.SubElement(act, "insubsection").text = ""
 
     settings = ET.SubElement(info, "settings")
 
@@ -547,11 +605,11 @@ def build_moodle_backup_xml(
         ET.SubElement(s, "name").text = name
         ET.SubElement(s, "value").text = value
 
-    add_root_setting("filename", f"backup-moodle2-activity-{moduleid}-quiz{moduleid}-{stamp}.mbz")
+    add_root_setting("filename", archive_name)
     add_root_setting("users", "0")
     add_root_setting("anonymize", "0")
     add_root_setting("role_assignments", "0")
-    add_root_setting("activities", "1")
+    add_root_setting("activities", str(len(modules)))
     add_root_setting("blocks", "0")
     add_root_setting("filters", "0")
     add_root_setting("comments", "0")
@@ -569,45 +627,103 @@ def build_moodle_backup_xml(
     add_root_setting("contentbankcontent", "0")
     add_root_setting("xapistate", "0")
 
-    activitykey = f"quiz_{moduleid}"
-    add_activity_setting(activitykey, f"{activitykey}_included", "1")
-    add_activity_setting(activitykey, f"{activitykey}_userinfo", "0")
+    for module in modules:
+        module_id = int(module.get("moduleid", 0))
+        activitykey = f"quiz_{module_id}"
+        add_activity_setting(activitykey, f"{activitykey}_included", "1")
+        add_activity_setting(activitykey, f"{activitykey}_userinfo", "0")
 
     return _et_to_bytes(root)
 
 
-def build_quiz_mbz(
-    category_name: str,
-    questions: List[Dict[str, Any]],
-    quiz_name: str,
-    intro_html: str = "",
-    moduleid: int = 5000,
+def build_quizzes_mbz(
+    quizzes: List[Dict[str, Any]],
+    moduleid_start: int = 5000,
 ) -> bytes:
-    entry_ids = [2000 + i for i in range(len(questions))]
+    if not quizzes:
+        raise ValueError("At least one quiz is required to build an MBZ archive.")
 
-    questions_xml = build_questions_xml(category_name, questions)
-    build_quiz_activity_xml._questions = questions
-    quiz_xml = build_quiz_activity_xml(moduleid, quiz_name, intro_html)
-    del build_quiz_activity_xml._questions
-    module_xml_bytes = build_module_xml(moduleid)
-    mod_root = ET.fromstring(module_xml_bytes)
-    for n in mod_root.findall("name"):
-        n.text = quiz_name or "Quiz"
-    module_xml = _et_to_bytes(mod_root)
+    normalized: List[Dict[str, Any]] = []
+    all_questions: List[Dict[str, Any]] = []
+    quiz_ranges: List[Tuple[int, int]] = []
 
-    backup_xml = build_moodle_backup_xml(moduleid, quiz_name)
+    for idx, quiz in enumerate(quizzes):
+        questions = list(quiz.get("questions", []) or [])
+        if not questions:
+            raise ValueError("Each quiz must include at least one question before export.")
+
+        start_idx = len(all_questions)
+        all_questions.extend(questions)
+        quiz_ranges.append((start_idx, len(all_questions)))
+
+        normalized.append(
+            {
+                "moduleid": int(quiz.get("moduleid", moduleid_start + idx)),
+                "quiz_name": (quiz.get("quiz_name") or f"Quiz {idx + 1}").strip(),
+                "intro_html": quiz.get("intro_html", ""),
+                "category_name": quiz.get("category_name", ""),
+                "questions": questions,
+            }
+        )
+
+    combined_category = normalized[0].get("category_name") or "Default category"
+    questions_xml = build_questions_xml(combined_category, all_questions)
+    question_ids = getattr(build_questions_xml, "_last_question_ids", [])
+    entry_ids = getattr(build_questions_xml, "_last_entry_ids", [])
+
+    if len(question_ids) != len(all_questions) or len(entry_ids) != len(all_questions):
+        raise ValueError("Failed to map questions to Moodle identifiers during export.")
+
+    quiz_question_infos: List[List[Dict[str, Any]]] = []
+    for idx, (start, end) in enumerate(quiz_ranges):
+        qinfos: List[Dict[str, Any]] = []
+        for offset, pos in enumerate(range(start, end)):
+            question_payload = normalized[idx]["questions"][offset]
+            points = question_payload.get("points", 1.0)
+            try:
+                maxmark = float(points)
+            except (TypeError, ValueError):
+                maxmark = 1.0
+            qinfos.append(
+                {
+                    "question_id": question_ids[pos],
+                    "entry_id": entry_ids[pos],
+                    "maxmark": maxmark,
+                }
+            )
+        quiz_question_infos.append(qinfos)
+
+    modules_meta = [
+        {
+            "moduleid": quiz_info["moduleid"],
+            "title": quiz_info["quiz_name"] or "Quiz",
+        }
+        for quiz_info in normalized
+    ]
+
+    backup_xml = build_moodle_backup_xml(modules_meta)
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("moodle_backup.xml", backup_xml)
         z.writestr("questions.xml", questions_xml)
-        actdir = f"activities/quiz_{moduleid}/"
 
-        z.writestr(actdir + "module.xml", module_xml)
-        z.writestr(actdir + "quiz.xml", quiz_xml)
+        for idx, quiz_info in enumerate(normalized):
+            moduleid = quiz_info["moduleid"]
+            actdir = f"activities/quiz_{moduleid}/"
 
-        z.writestr(actdir + "roles.xml", build_empty_roles_xml())
-        z.writestr(actdir + "grades.xml", build_empty_grades_xml())
+            module_xml = build_module_xml(moduleid, modname=quiz_info["quiz_name"] or "Quiz")
+            quiz_xml = build_quiz_activity_xml(
+                moduleid,
+                quiz_info["quiz_name"],
+                quiz_info["intro_html"],
+                question_infos=quiz_question_infos[idx],
+            )
+
+            z.writestr(actdir + "module.xml", module_xml)
+            z.writestr(actdir + "quiz.xml", quiz_xml)
+            z.writestr(actdir + "roles.xml", build_empty_roles_xml())
+            z.writestr(actdir + "grades.xml", build_empty_grades_xml())
 
         z.writestr("roles.xml", "<roles></roles>")
         z.writestr("users.xml", "<users></users>")
@@ -617,7 +733,25 @@ def build_quiz_mbz(
         z.writestr("files.xml", "<files></files>")
         z.writestr("completion.xml", "<completion></completion>")
         z.writestr("badges.xml", "<badges></badges>")
+
     return buf.getvalue()
+
+
+def build_quiz_mbz(
+    category_name: str,
+    questions: List[Dict[str, Any]],
+    quiz_name: str,
+    intro_html: str = "",
+    moduleid: int = 5000,
+) -> bytes:
+    quiz_payload = {
+        "category_name": category_name,
+        "questions": questions,
+        "quiz_name": quiz_name,
+        "intro_html": intro_html,
+        "moduleid": moduleid,
+    }
+    return build_quizzes_mbz([quiz_payload], moduleid_start=moduleid)
 
 
 ################################################################################################################################
@@ -1348,30 +1482,73 @@ class quizBuilder:
         # Label + help for loaded questions
         self.loaded_questions_label_frame = tk.Frame(self.root)
         self.loaded_questions_label_frame.grid(row=8, column=0, columnspan=2, padx=10, sticky='we')
-        self.label_loaded_questions = tk.Label(self.loaded_questions_label_frame, text="Loaded Questions")
+        self.label_loaded_questions = tk.Label(self.loaded_questions_label_frame, text="Saved Quizzes")
         self.label_loaded_questions.pack(side=tk.LEFT)
         self.label_loaded_help = tk.Label(self.loaded_questions_label_frame, text=" ?", fg="blue", cursor="hand2")
         self.label_loaded_help.pack(side=tk.LEFT, padx=(6,0))
-        Tooltip(self.label_loaded_help, "This list shows questions imported from an XML file (e.g. produced by the Question Builder).\n\nUse the Import button below to load a Moodle XML file. Imported items will appear here.")
-        # listbox to show loaded questions (store as instance attribute so other methods can update it)
-        self.listbox_questions = tk.Listbox(self.root)
-        self.listbox_questions.grid(row=9, column=0, columnspan=2, padx=10, pady=6, sticky='nsew')
+        Tooltip(
+            self.label_loaded_help,
+            "This list stores quizzes that are ready for export.\n\nUse the Add button to capture the current quiz setup, then export all saved quizzes at once.",
+        )
+        # listbox to show saved quizzes
+        self.listbox_quizzes = tk.Listbox(self.root)
+        self.listbox_quizzes.grid(row=9, column=0, columnspan=2, padx=10, pady=6, sticky='nsew')
         self.root.grid_rowconfigure(9, weight=1)
-        # storage for imported questions
-        self.loaded_questions = []
+        # storage for quizzes staged for export and the latest question set from the builder
+        self.saved_quizzes: List[Dict[str, Any]] = []
+        self.current_question_set: List[Dict[str, Any]] = []
+
         tk.Button(self.root, text="Import Question XML File", command=self.import_xml)\
             .grid(row=10, column=0, padx=10, pady=10, sticky='we')
 
-        # NEW: Export .mbz button
-        tk.Button(self.root, text="Export Quiz (.mbz)", command=self.export_quiz_mbz)\
+        tk.Button(self.root, text="Add Quiz to Export List", command=self.add_quiz_to_export_list)\
             .grid(row=10, column=1, padx=10, pady=10, sticky='we')
 
-        # Add debug button
+        tk.Button(self.root, text="Export Quizzes (.mbz)", command=self.export_quiz_mbz)\
+            .grid(row=11, column=0, columnspan=2, padx=10, pady=10, sticky='we')
+
         tk.Button(self.root, text="Debug: Show Variables", command=self.show_debug_info)\
-            .grid(row=11, column=0, columnspan=2, padx=10, pady=5, sticky='we')
+            .grid(row=12, column=0, columnspan=2, padx=10, pady=5, sticky='we')
 
         pass
-    
+
+    def add_quiz_to_export_list(self):
+        try:
+            quiz_name = (self.quiz_title_entry.get() or "Quiz").strip()
+            intro_html = self.quiz_description_entry.get("1.0", tk.END).strip()
+
+            qb = self.get_question_builder()
+            if qb is not None:
+                questions = [copy.deepcopy(question) for question in qb.questions]
+                category_name = qb.entry_category.get().strip() or "Default category"
+            else:
+                questions = [copy.deepcopy(question) for question in self.current_question_set]
+                category_name = "Default category"
+
+            if not questions:
+                messagebox.showwarning(
+                    "Save Quiz",
+                    "There are no questions available to save. Create or import questions before adding the quiz to the export list.",
+                )
+                return
+
+            quiz_payload = {
+                "quiz_name": quiz_name or f"Quiz {len(self.saved_quizzes) + 1}",
+                "intro_html": intro_html,
+                "category_name": category_name,
+                "questions": questions,
+            }
+
+            self.saved_quizzes.append(quiz_payload)
+            self.update_saved_quiz_listbox()
+            messagebox.showinfo(
+                "Save Quiz",
+                f"'{quiz_payload['quiz_name']}' was added to the export list.",
+            )
+        except Exception as e:
+            messagebox.showerror("Save Quiz", f"An error occurred while saving the quiz: {e}")
+            logging.error("Error adding quiz to export list", exc_info=True)
+
     def show_debug_info(self):
         """Gathers and displays the current values of all variables in the quizBuilder tab."""
         try:
@@ -1388,7 +1565,8 @@ class quizBuilder:
             close_minute = self.minute_close_var.get()
             time_limit = self.time_limit_entry.get()
             attempts_allowed = self.attempts_allowed_entry.get()
-            num_loaded_questions = len(self.loaded_questions)
+            num_loaded_questions = len(self.current_question_set)
+            num_saved_quizzes = len(self.saved_quizzes)
 
             # Format the information into a string
             debug_message = (
@@ -1402,7 +1580,8 @@ class quizBuilder:
                 f"Close Time: {close_hour}:{close_minute}\n\n"
                 f"Time Limit: {time_limit}\n"
                 f"Attempts Allowed: {attempts_allowed}\n\n"
-                f"Number of Loaded Questions: {num_loaded_questions}"
+                f"Questions Available for Saving: {num_loaded_questions}\n"
+                f"Quizzes Saved for Export: {num_saved_quizzes}"
             )
 
             # Display the information in a message box
@@ -1508,59 +1687,54 @@ class quizBuilder:
             qb = self.get_question_builder()
             if qb is not None:
                 qb.replace_questions(imported_questions)
-            else:
-                self.loaded_questions = [copy.deepcopy(question) for question in imported_questions]
-                self.update_question_listbox()
+            self.current_question_set = [copy.deepcopy(question) for question in imported_questions]
         except Exception as e:
             messagebox.showerror("Import Error", f"Failed to import XML: {e}")
 
     def export_quiz_mbz(self):
         try:
-            # Pull quiz metadata from this tab
-            quiz_name = (self.quiz_title_entry.get() or "Quiz").strip()
-            intro_html = self.quiz_description_entry.get("1.0", tk.END).strip()
-
-            # Pull category + questions from the Question Builder tab
-            qb = self.get_question_builder()
-            if qb is None:
-                tk.messagebox.showerror("Export", "Could not locate Question Builder in the main window.")
+            if not self.saved_quizzes:
+                tk.messagebox.showwarning(
+                    "Export",
+                    "No quizzes have been saved. Use 'Add Quiz to Export List' before exporting.",
+                )
                 return
 
-            category_name = qb.entry_category.get().strip() or "Default category"
-            questions = qb.questions[:]  # list of dicts you already build
+            # Clone the saved quizzes so the export routine can annotate module IDs without
+            # mutating the UI state.
+            export_payload = []
+            moduleid_start = 5000
+            for idx, quiz in enumerate(self.saved_quizzes):
+                payload = copy.deepcopy(quiz)
+                payload["moduleid"] = moduleid_start + idx
+                export_payload.append(payload)
 
-            if not questions:
-                tk.messagebox.showwarning("Export", "No questions found. Add questions in the Question Builder first.")
-                return
-
-            # Build the .mbz archive (bytes)
-            mbz_bytes = build_quiz_mbz(category_name, questions, quiz_name, intro_html)
+            mbz_bytes = build_quizzes_mbz(export_payload, moduleid_start=moduleid_start)
 
             # Save dialog
             path = filedialog.asksaveasfilename(
                 defaultextension=".mbz",
                 filetypes=[("Moodle Backup", "*.mbz"), ("Zip", "*.zip")],
-                initialfile=f"{quiz_name or 'quiz'}.mbz"
+                initialfile="quizzes.mbz",
             )
             if not path:
                 return
             with open(path, "wb") as f:
                 f.write(mbz_bytes)
-            tk.messagebox.showinfo("Export", f"Exported Moodle backup:\n{os.path.basename(path)}")
+            tk.messagebox.showinfo("Export", f"Exported Moodle backup with {len(self.saved_quizzes)} quiz(es):\n{os.path.basename(path)}")
         except Exception as e:
             tk.messagebox.showerror("Export Error", f"Failed to export .mbz: {e}")
 
 
-
-    def update_question_listbox(self):
-        self.listbox_questions.delete(0, tk.END)
-        for question in self.loaded_questions:
-            display_text = f"{question.get('type')}: {question.get('name')} - {question.get('text')} (Points: {question.get('points')})"
-            self.listbox_questions.insert(tk.END, display_text)
+    def update_saved_quiz_listbox(self):
+        self.listbox_quizzes.delete(0, tk.END)
+        for idx, quiz in enumerate(self.saved_quizzes, start=1):
+            title = quiz.get("quiz_name") or f"Quiz {idx}"
+            question_count = len(quiz.get("questions", []))
+            self.listbox_quizzes.insert(tk.END, f"{idx}. {title} ({question_count} questions)")
 
     def update_loaded_questions_from_question_builder(self, questions):
-        self.loaded_questions = [copy.deepcopy(question) for question in questions]
-        self.update_question_listbox()
+        self.current_question_set = [copy.deepcopy(question) for question in questions]
 
     def get_question_builder(self):
         mw = getattr(self, "main_window_ref", None)
