@@ -3,7 +3,6 @@
 #region This collapse is just a bunch of housekeeping: logging, tooltips, windows icon
 import os
 import copy
-import html
 import io
 import logging
 import platform
@@ -374,12 +373,7 @@ def build_quiz_activity_xml(
 
     quiz = ET.SubElement(root, "quiz", {"id": str(quiz_id)})
     ET.SubElement(quiz, "name").text = quiz_name or "Quiz"
-
-    raw_intro = intro_html or ""
-    intro_text = html.escape(raw_intro, quote=False)
-    if not intro_text.strip():
-        intro_text = "&nbsp;"
-    ET.SubElement(quiz, "intro").text = intro_text
+    ET.SubElement(quiz, "intro").text = intro_html or ""
     ET.SubElement(quiz, "introformat").text = "1"
 
     ET.SubElement(quiz, "timeopen").text = "0"
@@ -396,71 +390,31 @@ def build_quiz_activity_xml(
     ET.SubElement(quiz, "decimalpoints").text = "2"
     ET.SubElement(quiz, "questiondecimalpoints").text = "-1"
 
-    for k, v in [
-        ("reviewattempt", "69888"),
-        ("reviewcorrectness", "4352"),
-        ("reviewmaxmarks", "69888"),
-        ("reviewmarks", "4352"),
-        ("reviewspecificfeedback", "4352"),
-        ("reviewgeneralfeedback", "4352"),
-        ("reviewrightanswer", "4352"),
-        ("reviewoverallfeedback", "4352"),
-    ]:
+    for k, v in {
+        "reviewattempt": "65536",
+        "reviewcorrectness": "4096",
+        "reviewmarks": "4096",
+        "reviewspecificfeedback": "4096",
+        "reviewgeneralfeedback": "4096",
+        "reviewrightanswer": "4096",
+        "reviewoverallfeedback": "4096",
+    }.items():
         ET.SubElement(quiz, k).text = v
 
-    questions = getattr(build_quiz_activity_xml, "_questions", [])
-    questions_per_page = 5
-
-    ET.SubElement(quiz, "questionsperpage").text = str(questions_per_page)
+    ET.SubElement(quiz, "questionsperpage").text = "5"
     ET.SubElement(quiz, "navmethod").text = "free"
     ET.SubElement(quiz, "shuffleanswers").text = "0"
-
-    question_instances = ET.SubElement(quiz, "question_instances")
-    slots_elem = ET.SubElement(quiz, "slots")
+    ET.SubElement(quiz, "question_instances")
 
     sections = ET.SubElement(quiz, "sections")
-    if questions:
+    if entry_ids:
         sec = ET.SubElement(sections, "section", {"id": "1"})
         ET.SubElement(sec, "firstslot").text = "1"
-        ET.SubElement(sec, "lastslot").text = str(len(questions))
-        ET.SubElement(sec, "slotcount").text = str(len(questions))
         ET.SubElement(sec, "shufflequestions").text = "0"
-        ET.SubElement(sec, "parentid").text = "$@NULL@$"
-    else:
-        ET.SubElement(sections, "section", {"id": "1"})
 
     total = 0.0
-    for idx, q in enumerate(questions, start=1):
-        page_number = ((idx - 1) // questions_per_page) + 1
-        q_id = 35640000 + (idx - 1)
-        raw_points = q.get("points", per_slot_maxmark)
-        try:
-            maxmark = float(raw_points)
-        except (TypeError, ValueError):
-            maxmark = float(per_slot_maxmark)
-        total += maxmark
-
-        qi = ET.SubElement(question_instances, "question_instance", {"id": str(42000000 + idx)})
-        ET.SubElement(qi, "slot").text = str(idx)
-        ET.SubElement(qi, "page").text = str(page_number)
-        ET.SubElement(qi, "requireprevious").text = "0"
-        ET.SubElement(qi, "questionid").text = str(q_id)
-        ET.SubElement(qi, "variant").text = "1"
-        ET.SubElement(qi, "maxmark").text = f"{maxmark:.7f}"
-
-        slot = ET.SubElement(slots_elem, "slot", {"id": str(43000000 + idx)})
-        ET.SubElement(slot, "slot").text = str(idx)
-        ET.SubElement(slot, "page").text = str(page_number)
-        ET.SubElement(slot, "requireprevious").text = "0"
-        ET.SubElement(slot, "questionid").text = str(q_id)
-        ET.SubElement(slot, "maxmark").text = f"{maxmark:.7f}"
-        ET.SubElement(slot, "quizid").text = str(quiz_id)
-        ET.SubElement(slot, "slotsection").text = "1"
-        ET.SubElement(slot, "displaynumber").text = str(idx)
-        ET.SubElement(slot, "parentid").text = "$@NULL@$"
-
-    ET.SubElement(quiz, "sumgrades").text = f"{total:.5f}"
-    ET.SubElement(quiz, "grade").text = f"{total:.5f}"
+    ET.SubElement(quiz, "sumgrades").text = "0.00000"
+    ET.SubElement(quiz, "grade").text = "0.00000"
 
     now = str(_now_unix())
     ET.SubElement(quiz, "timecreated").text = now
@@ -629,6 +583,8 @@ def build_quiz_mbz(
     intro_html: str = "",
     moduleid: int = 5000,
 ) -> bytes:
+    entry_ids = [2000 + i for i in range(len(questions))]
+
     questions_xml = build_questions_xml(category_name, questions)
     build_quiz_activity_xml._questions = questions
     quiz_xml = build_quiz_activity_xml(moduleid, quiz_name, intro_html)
