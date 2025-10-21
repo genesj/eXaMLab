@@ -359,6 +359,23 @@ def build_questions_xml(category_name: str, questions: List[Dict[str, Any]]) -> 
     return _et_to_bytes(root)
 
 
+def _derive_quiz_identifiers(moduleid: int) -> Tuple[int, int, int, int]:
+    """Return identifiers for the quiz activity derived from ``moduleid``.
+
+    The tuple contains ``(activity_id, quiz_id, question_instance_base,
+    slot_base)`` ensuring that every generated quiz, as well as the nested
+    question instance and slot records, receive deterministic yet unique
+    identifiers when multiple quizzes are exported in a single archive.
+    """
+
+    base = moduleid if moduleid > 0 else 1
+    activity_id = base * 10
+    quiz_id = activity_id + 1
+    question_instance_base = base * 1000
+    slot_base = question_instance_base + 500
+    return activity_id, quiz_id, question_instance_base, slot_base
+
+
 def build_quiz_activity_xml(
     moduleid: int,
     quiz_name: str,
@@ -366,14 +383,14 @@ def build_quiz_activity_xml(
     entry_ids: list[int] | None = None,
     question_infos: List[Dict[str, Any]] | None = None,
     per_slot_maxmark: float = 1.0,
+    identifiers: Tuple[int, int, int, int] | None = None,
 ) -> bytes:
     # Derive stable identifiers from the supplied moduleid so that each
     # exported quiz receives unique values instead of the previous fixed
     # placeholder. Multiplying by 10 keeps the identifiers in the same
     # numeric range while avoiding collisions when multiple module IDs are
     # sequential (e.g., moduleid=100, 101, ...).
-    activity_id = moduleid * 10
-    quiz_id = activity_id + 1
+    activity_id, quiz_id, qi_base, slot_base = identifiers or _derive_quiz_identifiers(moduleid)
 
     root = ET.Element(
         "activity",
@@ -424,7 +441,7 @@ def build_quiz_activity_xml(
 
     sections = ET.SubElement(quiz, "sections")
     if entry_ids or question_infos:
-        sec = ET.SubElement(sections, "section", {"id": "1"})
+        sec = ET.SubElement(sections, "section", {"id": str(activity_id)})
         ET.SubElement(sec, "firstslot").text = "1"
         ET.SubElement(sec, "shufflequestions").text = "0"
         ET.SubElement(sec, "slotcount").text = str(len(question_infos or entry_ids or []))
@@ -435,17 +452,19 @@ def build_quiz_activity_xml(
         for slot_index, info in enumerate(question_infos, start=1):
             question_id = int(info.get("question_id", 0))
             maxmark = float(info.get("maxmark", per_slot_maxmark) or per_slot_maxmark)
-            qi = ET.SubElement(question_instances, "question_instance", {"id": str(500000 + slot_index)})
+            qi_id = qi_base + slot_index
+            qi = ET.SubElement(question_instances, "question_instance", {"id": str(qi_id)})
             ET.SubElement(qi, "slot").text = str(slot_index)
             ET.SubElement(qi, "questionid").text = str(question_id)
             ET.SubElement(qi, "maxmark").text = f"{maxmark:.5f}"
 
-            slot = ET.SubElement(slots_node, "slot", {"id": str(540000 + slot_index)})
+            slot_id = slot_base + slot_index
+            slot = ET.SubElement(slots_node, "slot", {"id": str(slot_id)})
             ET.SubElement(slot, "slotnumber").text = str(slot_index)
             ET.SubElement(slot, "quizpage").text = "1"
             ET.SubElement(slot, "requireprevious").text = "0"
             ET.SubElement(slot, "questionid").text = str(question_id)
-            ET.SubElement(slot, "questioninstanceid").text = str(500000 + slot_index)
+            ET.SubElement(slot, "questioninstanceid").text = str(qi_id)
             ET.SubElement(slot, "maxmark").text = f"{maxmark:.5f}"
             ET.SubElement(slot, "minmark").text = "0.00000"
 
@@ -453,17 +472,19 @@ def build_quiz_activity_xml(
     elif entry_ids:
         for slot_index, entry_id in enumerate(entry_ids, start=1):
             maxmark = per_slot_maxmark
-            qi = ET.SubElement(question_instances, "question_instance", {"id": str(500000 + slot_index)})
+            qi_id = qi_base + slot_index
+            qi = ET.SubElement(question_instances, "question_instance", {"id": str(qi_id)})
             ET.SubElement(qi, "slot").text = str(slot_index)
             ET.SubElement(qi, "questionid").text = str(entry_id)
             ET.SubElement(qi, "maxmark").text = f"{maxmark:.5f}"
 
-            slot = ET.SubElement(slots_node, "slot", {"id": str(540000 + slot_index)})
+            slot_id = slot_base + slot_index
+            slot = ET.SubElement(slots_node, "slot", {"id": str(slot_id)})
             ET.SubElement(slot, "slotnumber").text = str(slot_index)
             ET.SubElement(slot, "quizpage").text = "1"
             ET.SubElement(slot, "requireprevious").text = "0"
             ET.SubElement(slot, "questionid").text = str(entry_id)
-            ET.SubElement(slot, "questioninstanceid").text = str(500000 + slot_index)
+            ET.SubElement(slot, "questioninstanceid").text = str(qi_id)
             ET.SubElement(slot, "maxmark").text = f"{maxmark:.5f}"
             ET.SubElement(slot, "minmark").text = "0.00000"
 
@@ -505,12 +526,16 @@ def build_module_xml(
     visible: int = 1,
     visibleoncoursepage: int = 1,
     modname: str = "Quiz",
+    instanceid: int | None = None,
 ) -> bytes:
     root = ET.Element("module", {"id": str(moduleid), "version": "2024100700"})
     ET.SubElement(root, "modulename").text = "quiz"
     ET.SubElement(root, "name").text = modname
     ET.SubElement(root, "sectionid").text = "$@NULL@$"
     ET.SubElement(root, "sectionnumber").text = str(sectionnumber)
+
+    if instanceid is not None:
+        ET.SubElement(root, "instance").text = str(instanceid)
 
     ET.SubElement(root, "idnumber").text = ""
     ET.SubElement(root, "added").text = str(_now_unix())
@@ -717,12 +742,18 @@ def build_quizzes_mbz(
             moduleid = quiz_info["moduleid"]
             actdir = f"activities/quiz_{moduleid}/"
 
-            module_xml = build_module_xml(moduleid, modname=quiz_info["quiz_name"] or "Quiz")
+            identifiers = _derive_quiz_identifiers(moduleid)
+            module_xml = build_module_xml(
+                moduleid,
+                modname=quiz_info["quiz_name"] or "Quiz",
+                instanceid=identifiers[1],
+            )
             quiz_xml = build_quiz_activity_xml(
                 moduleid,
                 quiz_info["quiz_name"],
                 quiz_info["intro_html"],
                 question_infos=quiz_question_infos[idx],
+                identifiers=identifiers,
             )
 
             z.writestr(actdir + "module.xml", module_xml)
