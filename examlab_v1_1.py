@@ -679,8 +679,8 @@ def build_quizzes_mbz(
 
     for idx, quiz in enumerate(quizzes):
         questions = list(quiz.get("questions", []) or [])
-        if not questions:
-            raise ValueError("Each quiz must include at least one question before export.")
+        # if not questions:
+        #     raise ValueError("Each quiz must include at least one question before export.")
 
         start_idx = len(all_questions)
         all_questions.extend(questions)
@@ -1561,12 +1561,12 @@ class quizBuilder:
                 questions = [copy.deepcopy(question) for question in self.current_question_set]
                 category_name = "Default category"
 
-            if not questions:
-                messagebox.showwarning(
-                    "Save Quiz",
-                    "There are no questions available to save. Create or import questions before adding the quiz to the export list.",
-                )
-                return
+            # if not questions:
+            #     messagebox.showwarning(
+            #         "Save Quiz",
+            #         "There are no questions available to save. Create or import questions before adding the quiz to the export list.",
+            #     )
+            #     return
 
             quiz_payload = {
                 "quiz_name": quiz_name or f"Quiz {len(self.saved_quizzes) + 1}",
