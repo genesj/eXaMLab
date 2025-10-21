@@ -367,8 +367,13 @@ def build_quiz_activity_xml(
     question_infos: List[Dict[str, Any]] | None = None,
     per_slot_maxmark: float = 1.0,
 ) -> bytes:
-    activity_id = 260000
-    quiz_id = 260000
+    # Derive stable identifiers from the supplied moduleid so that each
+    # exported quiz receives unique values instead of the previous fixed
+    # placeholder. Multiplying by 10 keeps the identifiers in the same
+    # numeric range while avoiding collisions when multiple module IDs are
+    # sequential (e.g., moduleid=100, 101, ...).
+    activity_id = moduleid * 10
+    quiz_id = activity_id + 1
 
     root = ET.Element(
         "activity",
