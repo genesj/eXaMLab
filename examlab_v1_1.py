@@ -374,7 +374,8 @@ def build_quiz_activity_xml(
     quiz = ET.SubElement(root, "quiz", {"id": str(quiz_id)})
     ET.SubElement(quiz, "name").text = quiz_name or "Quiz"
 
-    ET.SubElement(quiz, "intro").text = intro_html or ""
+    intro_text = intro_html if intro_html else " "
+    ET.SubElement(quiz, "intro").text = intro_text
     ET.SubElement(quiz, "introformat").text = "1"
 
     ET.SubElement(quiz, "timeopen").text = "0"
