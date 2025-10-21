@@ -374,11 +374,8 @@ def build_quiz_activity_xml(
     quiz = ET.SubElement(root, "quiz", {"id": str(quiz_id)})
     ET.SubElement(quiz, "name").text = quiz_name or "Quiz"
 
-    intro_wrapper = ET.SubElement(quiz, "intro")
-    intro_text = ET.SubElement(intro_wrapper, "text")
-    intro_text.text = intro_html or ""
-    ET.SubElement(intro_wrapper, "format").text = "1"
-    ET.SubElement(intro_wrapper, "files")
+    ET.SubElement(quiz, "intro").text = intro_html or ""
+    ET.SubElement(quiz, "introformat").text = "1"
 
     ET.SubElement(quiz, "timeopen").text = "0"
     ET.SubElement(quiz, "timeclose").text = "0"
@@ -394,15 +391,16 @@ def build_quiz_activity_xml(
     ET.SubElement(quiz, "decimalpoints").text = "2"
     ET.SubElement(quiz, "questiondecimalpoints").text = "-1"
 
-    for k, v in {
-        "reviewattempt": "65536",
-        "reviewcorrectness": "4096",
-        "reviewmarks": "4096",
-        "reviewspecificfeedback": "4096",
-        "reviewgeneralfeedback": "4096",
-        "reviewrightanswer": "4096",
-        "reviewoverallfeedback": "4096",
-    }.items():
+    for k, v in [
+        ("reviewattempt", "69888"),
+        ("reviewcorrectness", "4352"),
+        ("reviewmaxmarks", "69888"),
+        ("reviewmarks", "4352"),
+        ("reviewspecificfeedback", "4352"),
+        ("reviewgeneralfeedback", "4352"),
+        ("reviewrightanswer", "4352"),
+        ("reviewoverallfeedback", "4352"),
+    ]:
         ET.SubElement(quiz, k).text = v
 
     questions = getattr(build_quiz_activity_xml, "_questions", [])
