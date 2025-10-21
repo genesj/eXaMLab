@@ -373,8 +373,12 @@ def build_quiz_activity_xml(
 
     quiz = ET.SubElement(root, "quiz", {"id": str(quiz_id)})
     ET.SubElement(quiz, "name").text = quiz_name or "Quiz"
-    ET.SubElement(quiz, "intro").text = intro_html or ""
-    ET.SubElement(quiz, "introformat").text = "1"
+
+    intro_wrapper = ET.SubElement(quiz, "intro")
+    intro_text = ET.SubElement(intro_wrapper, "text")
+    intro_text.text = intro_html or ""
+    ET.SubElement(intro_wrapper, "format").text = "1"
+    ET.SubElement(intro_wrapper, "files")
 
     ET.SubElement(quiz, "timeopen").text = "0"
     ET.SubElement(quiz, "timeclose").text = "0"
@@ -401,20 +405,59 @@ def build_quiz_activity_xml(
     }.items():
         ET.SubElement(quiz, k).text = v
 
-    ET.SubElement(quiz, "questionsperpage").text = "5"
+    questions = getattr(build_quiz_activity_xml, "_questions", [])
+    questions_per_page = 5
+
+    ET.SubElement(quiz, "questionsperpage").text = str(questions_per_page)
     ET.SubElement(quiz, "navmethod").text = "free"
     ET.SubElement(quiz, "shuffleanswers").text = "0"
-    ET.SubElement(quiz, "question_instances")
+
+    question_instances = ET.SubElement(quiz, "question_instances")
+    slots_elem = ET.SubElement(quiz, "slots")
 
     sections = ET.SubElement(quiz, "sections")
-    if entry_ids:
+    if questions:
         sec = ET.SubElement(sections, "section", {"id": "1"})
         ET.SubElement(sec, "firstslot").text = "1"
+        ET.SubElement(sec, "lastslot").text = str(len(questions))
+        ET.SubElement(sec, "slotcount").text = str(len(questions))
         ET.SubElement(sec, "shufflequestions").text = "0"
+        ET.SubElement(sec, "parentid").text = "$@NULL@$"
+    else:
+        ET.SubElement(sections, "section", {"id": "1"})
 
     total = 0.0
-    ET.SubElement(quiz, "sumgrades").text = "0.00000"
-    ET.SubElement(quiz, "grade").text = "0.00000"
+    for idx, q in enumerate(questions, start=1):
+        page_number = ((idx - 1) // questions_per_page) + 1
+        q_id = 35640000 + (idx - 1)
+        raw_points = q.get("points", per_slot_maxmark)
+        try:
+            maxmark = float(raw_points)
+        except (TypeError, ValueError):
+            maxmark = float(per_slot_maxmark)
+        total += maxmark
+
+        qi = ET.SubElement(question_instances, "question_instance", {"id": str(42000000 + idx)})
+        ET.SubElement(qi, "slot").text = str(idx)
+        ET.SubElement(qi, "page").text = str(page_number)
+        ET.SubElement(qi, "requireprevious").text = "0"
+        ET.SubElement(qi, "questionid").text = str(q_id)
+        ET.SubElement(qi, "variant").text = "1"
+        ET.SubElement(qi, "maxmark").text = f"{maxmark:.7f}"
+
+        slot = ET.SubElement(slots_elem, "slot", {"id": str(43000000 + idx)})
+        ET.SubElement(slot, "slot").text = str(idx)
+        ET.SubElement(slot, "page").text = str(page_number)
+        ET.SubElement(slot, "requireprevious").text = "0"
+        ET.SubElement(slot, "questionid").text = str(q_id)
+        ET.SubElement(slot, "maxmark").text = f"{maxmark:.7f}"
+        ET.SubElement(slot, "quizid").text = str(quiz_id)
+        ET.SubElement(slot, "slotsection").text = "1"
+        ET.SubElement(slot, "displaynumber").text = str(idx)
+        ET.SubElement(slot, "parentid").text = "$@NULL@$"
+
+    ET.SubElement(quiz, "sumgrades").text = f"{total:.5f}"
+    ET.SubElement(quiz, "grade").text = f"{total:.5f}"
 
     now = str(_now_unix())
     ET.SubElement(quiz, "timecreated").text = now
@@ -583,8 +626,6 @@ def build_quiz_mbz(
     intro_html: str = "",
     moduleid: int = 5000,
 ) -> bytes:
-    entry_ids = [2000 + i for i in range(len(questions))]
-
     questions_xml = build_questions_xml(category_name, questions)
     build_quiz_activity_xml._questions = questions
     quiz_xml = build_quiz_activity_xml(moduleid, quiz_name, intro_html)
