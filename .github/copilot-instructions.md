@@ -1,57 +1,73 @@
 # Moodle Quiz Generator (`.mbz`)
 
-This project is a Python desktop application for creating Moodle quizzes and packaging them into a Moodle Backup (`.mbz`) file for easy import.
+This project is a Python desktop application for creating Moodle quizzes and packaging them into a Moodle Backup (`.mbz`) file for easy import. It's designed to be simple, portable, and dependency-light.
 
-## Core Components
+## Core Components and Architecture
 
-The project consists of two main Python files:
+1. **Main Application (`examlab_v1_1.py`)**
+   - GUI implementation using `tkinter`
+   - Core class `questionBuilder` handles question management and UI state
+   - Integrated `mbz_builder` functions for generating Moodle backups
 
-1.  **`examlab_v1_1.py`**: This is the main entry point and contains the GUI for the application, built using `tkinter`. It allows users to define questions of various types (Multiple Choice, True/False, Short Answer, Essay). The `questionBuilder` class is the core of the UI, managing the question list and user inputs.
+2. **Question Data Structure**
+   ```python
+   {
+       "type": str,         # "Multiple Choice", "True/False", "Short Answer", "Essay"
+       "name": str,         # Question title
+       "text": str,         # Question content
+       "points": float,     # Question points
+       "options": list,     # [For Multiple Choice] List of answer choices
+       "correct": list,     # [For Multiple Choice/True False] 1-based indices of correct answers
+       "answer": str        # [For Short Answer] Correct answer text
+   }
+   ```
 
-2.  **`mbz_builder.py`**: This script is the engine that generates the Moodle backup file (`.mbz`). It contains functions to build the necessary XML files (`questions.xml`, `quiz.xml`, `module.xml`, `moodle_backup.xml`) and package them into a `.zip` archive with a `.mbz` extension.
+## Development Workflow
 
-## Architecture and Data Flow
+1. **Environment Setup**
+   - Requires Python 3.12+ (critical for XML handling)
+   - No pip dependencies except `tkcalendar` for date inputs
+   - Logging: 
+     - Windows: `%APPDATA%/eXaMLab/logs`
+     - macOS: `~/Library/Logs/eXaMLab`
+     - Linux: `/var/log/eXaMLab`
 
-1.  **User Input**: The user creates questions through the `tkinter` interface in `examlab_v1_1.py`. Each question is stored as a dictionary in the `questions` list within the `questionBuilder` instance.
+2. **Code Organization**
+   - Core UI logic in `questionBuilder` class
+   - `.mbz` generation functions prefixed with `build_` (e.g., `build_quiz_mbz()`)
+   - XML utilities prefixed with `_` (e.g., `_indent_xml()`)
 
-2.  **Data Structure for Questions**: A question is represented as a Python dictionary. The keys vary depending on the question type, but common keys include `type`, `name`, `text`, and `points`. For example, a multiple-choice question includes `options` and `correct` keys.
+3. **Key Integration Points**
+   - Question data flow: UI → Python dict → XML → `.mbz`
+   - Moodle compatibility requires specific XML schemas (see `build_questions_xml()`)
+   - Each question type has its own UI layout and validation rules
 
-    ```python
-    # Example of a Multiple Choice question dictionary
-    {
-        "type": "Multiple Choice",
-        "name": "Question 1",
-        "text": "What is the capital of France?",
-        "options": ["Paris", "London", "Berlin"],
-        "correct": [1], # 1-based index
-        "points": 1.0
-    }
-    ```
+## Project Conventions
 
-3.  **Generating the `.mbz` file**:
-    - When the user clicks "Save as XML" (which is slightly misnamed, as it saves as `.mbz`), the `save_as_xml` method in `examlab_v1_1.py` calls the `build_quiz_mbz` function from `mbz_builder.py`.
-    - `build_quiz_mbz` orchestrates the creation of the complete Moodle backup structure. It generates several XML files by calling other functions within `mbz_builder.py`.
-    - The generated XML files are then written into a zip archive, which is saved with the `.mbz` extension.
+1. **XML Generation**
+   - Never modify XML strings directly; use `xml.etree.ElementTree`
+   - Required files: `questions.xml`, `quiz.xml`, `module.xml`, `moodle_backup.xml`
+   - Use `_indent_xml()` for consistent formatting
 
-## Key Files and Logic
+2. **Error Handling**
+   - Log errors before displaying them to user
+   - Use `messagebox` for user-facing errors
+   - Validate question data before XML generation
 
--   **`examlab_v1_1.py`**:
-    -   `questionBuilder` class: Manages the UI for creating questions.
-    -   `add_question()`: Gathers data from the UI and creates the question dictionary.
-    -   `save_as_xml()`: Initiates the process of saving the quiz.
+## Common Development Tasks
 
--   **`mbz_builder.py`**:
-    -   `build_quiz_mbz()`: The main function that creates the `.mbz` file.
-    -   `build_questions_xml()`: Creates the `questions.xml` file, which contains the question bank.
-    -   `build_quiz_activity_xml()`: Creates `quiz.xml`, defining the quiz activity itself.
-    -   `build_module_xml()`: Creates `module.xml`.
-    -   `build_moodle_backup_xml()`: Creates `moodle_backup.xml`, the main manifest for the backup.
+1. **Adding New Question Types**
+   - Add type-specific UI elements in `questionBuilder`
+   - Implement validation in `add_question()`
+   - Update XML generation in `build_questions_xml()`
 
-## Developer Workflow
+2. **Debugging**
+   - Check logs for XML generation errors
+   - Use `.get()` instead of direct dictionary access for UI values
+   - Validate `.mbz` structure with Moodle's import tool
 
--   The application is written in pure Python with `tkinter` for the UI.
--   There are no external dependencies besides `tkcalendar`.
--   To run the application, execute `examlab_v1_1.py` with a Python 3.12+ interpreter.
--   Logging is implemented, with logs being saved to platform-specific locations (`%APPDATA%/eXaMLab/logs` on Windows, `~/Library/Logs/eXaMLab` on macOS).
+## Limitations and Constraints
 
-When making changes, be mindful of the data structures passed from the UI to the `.mbz` builder and the specific XML structures Moodle expects. The `mbz_builder.py` file is particularly sensitive to the XML schema required by Moodle.
+- No support for image embedding in questions
+- No support for complex question types (Drag and Drop, Calculated, etc.)
+- UI elements must have tooltips (project convention)

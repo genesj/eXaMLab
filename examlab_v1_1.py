@@ -1,6 +1,9 @@
 ## Written by Gene Smith-James
 ## Version 1.1 - MacOS compatibility
-#region This collapse is just a bunch of housekeeping: logging, tooltips, windows icon
+
+#-----------------------------
+#region Imports
+#-----------------------------
 import os
 import copy
 import io
@@ -16,17 +19,13 @@ from typing import Any, Dict, List, Tuple
 from tkcalendar import DateEntry
 basedir = os.path.dirname(__file__)
 
-
-################################################################################################################################
-####
-#region MBZ builder utilities (merged from mbz_builder.py)
-################################################################################################################################
-####
-
-
+#-----------------------------
+#endregion Imports
+#-----------------------------
+#region MBZ Builder Utilities
+#-----------------------------
 def _now_unix() -> int:
     return int(time.time())
-
 
 def _uniq_suffix(n=6) -> str:
     import secrets
@@ -34,7 +33,6 @@ def _uniq_suffix(n=6) -> str:
 
     alpha = _string.ascii_lowercase + _string.digits
     return ''.join(secrets.choice(alpha) for _ in range(n))
-
 
 def _indent_xml(elem, level=0):
     i = "\n" + level * "  "
@@ -771,8 +769,6 @@ def build_quizzes_mbz(
         z.writestr("badges.xml", "<badges></badges>")
 
     return buf.getvalue()
-
-
 def build_quiz_mbz(
     category_name: str,
     questions: List[Dict[str, Any]],
@@ -788,13 +784,11 @@ def build_quiz_mbz(
         "moduleid": moduleid,
     }
     return build_quizzes_mbz([quiz_payload], moduleid_start=moduleid)
-
-
-################################################################################################################################
-####
-#endregion MBZ builder utilities
-################################################################################################################################
-####
+#-----------------------------
+#endregion MBZ Builder Utilities
+#-----------------------------
+#region Platform-Specific Code
+#-----------------------------
 # windows: set taskbar icon
 if platform.system() == "Windows":
     try:
@@ -803,16 +797,15 @@ if platform.system() == "Windows":
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     except ImportError:
         pass
-
-
-####################################################################################################################################
-## windows/mac/linux: logging
-####################################################################################################################################
 if platform.system() == "Windows":
     log_dir = os.path.join(os.getenv("APPDATA"), "eXaMLab", "logs")
 else:  # macOS & Linux
     log_dir = os.path.expanduser("~/Library/Logs/eXaMLab")
-
+#-----------------------------
+#endregion Platform-Specific Code
+#-----------------------------
+#region Logging Configuration
+#-----------------------------
 os.makedirs(log_dir, exist_ok=True)
 error_log_path = os.path.join(log_dir, "error_log.txt")
 debug_log_path = os.path.join(log_dir, "debug_log.txt")
@@ -825,6 +818,9 @@ debug_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 debug_handler.setFormatter(debug_formatter)
 debug_logger.addHandler(debug_handler)
 debug_logger.debug("Application started successfully on " + platform.system())
+#-----------------------------
+#endregion Logging Configuration
+#-----------------------------
 class Tooltip:
     def __init__(self, widget, text):
         self.widget = widget
@@ -861,8 +857,6 @@ class Tooltip:
             self.tooltip_window.destroy()
             self.tooltip_window = None
             debug_logger.debug(f"Hidden tooltip {self.widget}")
-
-
 class mainWindow:
     def __init__(self, root):
         try:
@@ -874,10 +868,11 @@ class mainWindow:
                 self.root.iconbitmap(os.path.join(basedir, "icon.ico"))
             else:
                 pass
+            
             # Top bar for info/buttons
             self.topbar = tk.Frame(self.root)
             self.topbar.pack(side=tk.TOP, fill='x')
-            self.topbar_label = tk.Label(self.topbar, text="eXaMLab Utility", font=("Arial", 14, "bold"))
+            self.topbar_label = tk.Label(self.topbar, text="eXaMLab", font=("Arial", 14, "bold"))
             self.topbar_label.pack(side=tk.LEFT, padx=10, pady=6)
             # Create notebook for tabs
             self.notebook = ttk.Notebook(self.root)
@@ -892,19 +887,18 @@ class mainWindow:
             self.quiz_tab = quizBuilder(quiz_tab)
             self.quiz_tab.main_window_ref = self
             self.notebook.add(quiz_tab, text="Quiz Builder")
-            # Create assignment tab (blank)
-            assignment_tab = ttk.Frame(self.notebook)
-            self.assignment_tab = assignmentBuilder(assignment_tab)
-            self.notebook.add(assignment_tab, text="Assignment Builder")
-            # Create forum tab (blank)
-            forum_tab = ttk.Frame(self.notebook)
-            self.forum_tab = forumBuilder(forum_tab)
-            self.notebook.add(forum_tab, text="Forum Builder")
+            # # Create assignment tab (blank)
+            # assignment_tab = ttk.Frame(self.notebook)
+            # self.assignment_tab = assignmentBuilder(assignment_tab)
+            # self.notebook.add(assignment_tab, text="Assignment Builder")
+            # # Create forum tab (blank)
+            # forum_tab = ttk.Frame(self.notebook)
+            # self.forum_tab = forumBuilder(forum_tab)
+            # self.notebook.add(forum_tab, text="Forum Builder")
             debug_logger.debug("User interface setup complete")
         except Exception as e:
             logging.error("Error initializing the application", exc_info=True)
             debug_logger.debug("Brutal error. Cannot initialize application.")
-## Tabs
 class questionBuilder:
     def __init__(self, parent):
         try:
@@ -915,14 +909,77 @@ class questionBuilder:
             self.edit_index = None
             self.mcq_option_entries = []
             self.main_window_ref = None
-            self.setup_quizBuilder_UI()
+
+            # --- Category Frame (Top) ---
+            category_frame = ttk.Frame(self.root, padding=(10, 10, 10, 0))
+            category_frame.pack(fill=tk.X)
+            self.label_category = ttk.Label(category_frame, text="Category Name:", anchor='e')
+            self.label_category.pack(side=tk.LEFT, padx=(0, 10))
+            self.entry_category = ttk.Entry(category_frame)
+            self.entry_category.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            Tooltip(self.entry_category, "Enter the name of this question bank. This will be used as the category these questions belong to inside of Moodle. You can only have one category per XML file.")
+
+            self.main_frame = ttk.Frame(self.root, padding="10")
+            self.main_frame.pack(fill=tk.BOTH, expand=True)
+
+            # Configure grid layout
+            self.main_frame.columnconfigure(0, weight=1, minsize=250)
+            self.main_frame.columnconfigure(1, weight=3)
+            self.main_frame.rowconfigure(0, weight=1)
+
+            # Left side: Question List
+            question_list_frame = ttk.Frame(self.main_frame)
+            question_list_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+            question_list_frame.grid_propagate(False)
+            question_list_frame.columnconfigure(0, weight=1)
+            question_list_frame.rowconfigure(1, weight=1)
+
+            ttk.Label(question_list_frame, text="Questions", font=("Arial", 12, "bold")).grid(row=0, column=0, sticky="w", pady=(0, 5))
+
+            self.listbox_questions = tk.Listbox(question_list_frame, selectmode=tk.EXTENDED, exportselection=False)
+            self.listbox_questions.grid(row=1, column=0, columnspan=2, sticky="nsew")
+            self.listbox_questions.bind("<<ListboxSelect>>", self.on_question_select)
+            self.listbox_questions.bind("<Double-1>", lambda event: self.edit_question())
+
+            # Add a scrollbar to the listbox
+            scrollbar = ttk.Scrollbar(question_list_frame, orient=tk.VERTICAL, command=self.listbox_questions.yview)
+            scrollbar.grid(row=1, column=1, sticky="ns")
+            self.listbox_questions.config(yscrollcommand=scrollbar.set)
+
+            # --- Buttons below listbox ---
+            list_button_frame = ttk.Frame(question_list_frame)
+            list_button_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(5, 0))
+            list_button_frame.columnconfigure(0, weight=1)
+            list_button_frame.columnconfigure(1, weight=1)
+
+            self.button_edit_question = ttk.Button(list_button_frame, text="Load for Editing", command=self.edit_question, state=tk.DISABLED)
+            self.button_edit_question.grid(row=0, column=0, sticky="ew", padx=(0, 2))
+            Tooltip(self.button_edit_question, "Load the selected question from the list into the editor.")
+
+            self.button_delete_question = ttk.Button(list_button_frame, text="Delete Question(s)", command=self.delete_selected_questions)
+            self.button_delete_question.grid(row=0, column=1, sticky="ew", padx=(2, 0))
+            Tooltip(self.button_delete_question, "Delete the selected question(s) from the list.")
+
+            self.button_load_xml = ttk.Button(list_button_frame, text="Load XML File", command=self.load_xml_file)
+            self.button_load_xml.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(5, 0))
+            Tooltip(self.button_load_xml, "Load questions from a Moodle XML file.")
+
+            # Right side: Question Details
+            self.details_frame = ttk.Frame(self.main_frame)
+            self.details_frame.grid(row=0, column=1, sticky="nsew")
+            self.details_frame.columnconfigure(1, weight=1)
+
+            self.setup_questionBuilder_UI()
             debug_logger.debug("User interface setup complete")
         except Exception as e:
             logging.error("Error initializing the application", exc_info=True)
             debug_logger.debug("Brutal error. Cannot initialize application.")
 
-    def setup_quizBuilder_UI(self):
+    def setup_questionBuilder_UI(self):
         try:
+            # Add a heading to the details frame
+            ttk.Label(self.details_frame, text="Question Details", font=("Arial", 12, "bold")).grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 10), padx=10)
+
             def validate_points(value_if_allowed):
                 if value_if_allowed == "" or value_if_allowed.isdigit():
                     return True
@@ -932,134 +989,103 @@ class questionBuilder:
                 except ValueError:
                     return False
             vcmd = (self.root.register(validate_points), '%P')
-            self.label_category = tk.Label(self.root, text="Enter Category Name:", anchor='e')
-            self.label_category.grid(row=0, column=0, padx=10, pady=5, sticky='e')
-            self.entry_category = tk.Entry(self.root, width=50)
-            self.entry_category.grid(row=0, column=1, padx=10, pady=5, sticky='we', columnspan=2)
-            Tooltip(self.entry_category, "Enter the name of this question bank. This will be used as the category these questions belong to inside of Moodle. You can only have one category per XML file.")
-            debug_logger.debug("Category input field initialized.")
-            self.label_question_type = tk.Label(self.root, text="Select Question Type:", anchor='e')
-            self.label_question_type.grid(row=1, column=0, padx=10, pady=5, sticky='e')
+            
+            self.label_question_type = ttk.Label(self.details_frame, text="Select Question Type:", anchor='e')
+            self.label_question_type.grid(row=2, column=0, padx=10, pady=5, sticky='e')
             self.question_type_var = tk.StringVar(value="Multiple Choice")
-            self.dropdown_question_type = ttk.Combobox(self.root, textvariable=self.question_type_var, values=["Multiple Choice", "True/False", "Short Answer", "Essay", "Cloze"])
+            self.dropdown_question_type = ttk.Combobox(self.details_frame, textvariable=self.question_type_var, values=["Multiple Choice", "True/False", "Short Answer", "Essay", "Cloze"])
             self.dropdown_question_type.bind("<<ComboboxSelected>>", lambda event: self.update_ui_for_question_type(self.question_type_var.get()))
             self.dropdown_question_type.state(["readonly"])  # Make it read-only to simulate an OptionMenu behavior
-            self.dropdown_question_type.grid(row=1, column=1, padx=10, pady=5, sticky='w')
+            self.dropdown_question_type.grid(row=2, column=1, padx=10, pady=5, sticky='w')
             #Tooltip(self.dropdown_question_type, "Select the type of question you want to create. The controls will update based on the selected question type.")
             debug_logger.debug("Question type dropdown initialized.")
-            self.label_question_name = tk.Label(self.root, text="Enter Question Title:", anchor='e')
-            self.label_question_name.grid(row=2, column=0, padx=10, pady=5, sticky='e')
-            self.entry_question_name = tk.Entry(self.root, width=50)
-            self.entry_question_name.grid(row=2, column=1, padx=10, pady=5, columnspan=2, sticky='we')
+            self.label_question_name = ttk.Label(self.details_frame, text="Enter Question Title:", anchor='e')
+            self.label_question_name.grid(row=3, column=0, padx=10, pady=5, sticky='e')
+            self.entry_question_name = ttk.Entry(self.details_frame, width=50)
+            self.entry_question_name.grid(row=3, column=1, padx=10, pady=5, columnspan=2, sticky='we')
             Tooltip(self.entry_question_name, "Enter a title for the question. This will be displayed as the Question Name in Moodle.\n\nNote that Question Name is NOT the same thing as the text of the question. Question Names are purely cosmetic and only seeen by the instructor.")
             debug_logger.debug("Question name input field initialized.")
-            self.label_question_text = tk.Label(self.root, text="Enter Question Text:", anchor='e')
-            self.label_question_text.grid(row=3, column=0, padx=10, pady=5, sticky='e')
-            self.entry_question_text = tk.Text(self.root, width=50, height=4)
-            self.entry_question_text.grid(row=3, column=1, padx=10, pady=5, sticky='we', columnspan=2)
+            self.label_question_text = ttk.Label(self.details_frame, text="Enter Question Text:", anchor='e')
+            self.label_question_text.grid(row=4, column=0, padx=10, pady=5, sticky='e')
+            self.entry_question_text = tk.Text(self.details_frame, width=50, height=4)
+            self.entry_question_text.grid(row=4, column=1, padx=10, pady=5, sticky='we', columnspan=2)
+            self.entry_question_text.bind("<Tab>", lambda e: self.entry_question_text.tk_focusNext().focus())
+            self.entry_question_text.bind("<Shift-Tab>", lambda e: self.entry_question_text.tk_focusPrev().focus())
             Tooltip(self.entry_question_text, "Enter the text of the question.")
             debug_logger.debug("Question text input field initialized.")
-            self.label_points = tk.Label(self.root, text="Point Value (default is 1):", anchor='e')
-            self.label_points.grid(row=5, column=0, padx=10, pady=5, sticky='e')
-            self.entry_points = tk.Entry(self.root, width=10, validate='key', validatecommand=vcmd)
-            self.entry_points.grid(row=5, column=1, sticky='w', padx=10, pady=5)
+            self.label_points = ttk.Label(self.details_frame, text="Point Value (default is 1):", anchor='e')
+            self.label_points.grid(row=6, column=0, padx=10, pady=5, sticky='e')
+            self.entry_points = ttk.Entry(self.details_frame, width=10, validate='key', validatecommand=vcmd)
+            self.entry_points.grid(row=6, column=1, sticky='w', padx=10, pady=5)
             self.entry_points.insert(0, "1")  # Default value for points is 1
             Tooltip(self.entry_points, "Enter the point value for this question.\n\nThis value is used as the default grade for the question in Moodle. This isn't really necessary to set, depending on how your quiz is going to be configured.\nMoodle figures out how many points each question should be worth based on the Maximum Grade you set for the quiz.\n\nIn short, this is purely personal preference.")
             debug_logger.debug("Points input field initialized.")
 ##Multiple Choice Question UI
-            def add_mcq_option_entry(option_text="", checked=False):
-                frame = tk.Frame(self.mcq_options_frame)
-                frame.pack(side=tk.TOP, pady=2, fill='x')
-                entry = tk.Entry(frame, width=40)
-                entry.pack(side=tk.LEFT, fill='x', expand=True)
-                if option_text:
-                    entry.insert(0, option_text)
-                var = tk.BooleanVar(value=checked)
-                checkbox = tk.Checkbutton(frame, variable=var)
-                checkbox.pack(side=tk.LEFT, padx=5)
-                self.mcq_option_entries.append((entry, var))
-
-            def remove_last_mcq_option_entry():
-                if self.mcq_option_entries:
-                    entry, var = self.mcq_option_entries.pop()
-                    # Remove the frame containing the entry and checkbox
-                    entry.master.destroy()
             
-            self.label_mcq_options = tk.Label(self.root, text="Possible Choices:", anchor='e')
-            self.label_mcq_options.grid(row=6, column=0, padx=10, pady=5, sticky='ne')
+            self.label_mcq_options = ttk.Label(self.details_frame, text="Possible Choices:", anchor='e')
+            self.label_mcq_options.grid(row=7, column=0, padx=10, pady=5, sticky='ne')
 
-            self.mcq_options_frame = tk.Frame(self.root)
-            self.mcq_options_frame.grid(row=6, column=1, padx=10, pady=5, columnspan=2, sticky='we')
+            self.mcq_options_frame = ttk.Frame(self.details_frame)
+            self.mcq_options_frame.grid(row=7, column=1, padx=10, pady=5, columnspan=2, sticky='we')
 
             # Add buttons above the entries
-            self.mcq_buttons_frame = tk.Frame(self.mcq_options_frame)
+            self.mcq_buttons_frame = ttk.Frame(self.mcq_options_frame)
             self.mcq_buttons_frame.pack(side=tk.TOP, fill='x', pady=(0,2))
 
-            self.add_mcq_option_button = tk.Button(self.mcq_buttons_frame, text="Add Choice", command=lambda: add_mcq_option_entry())
+            self.add_mcq_option_button = ttk.Button(self.mcq_buttons_frame, text="Add Choice", command=self._add_mcq_option_entry)
             self.add_mcq_option_button.pack(side=tk.LEFT, padx=(0,5))
 
-            self.remove_mcq_option_button = tk.Button(self.mcq_buttons_frame, text="Remove Choice", command=remove_last_mcq_option_entry)
+            self.remove_mcq_option_button = ttk.Button(self.mcq_buttons_frame, text="Remove Choice", command=self._remove_last_mcq_option_entry)
             self.remove_mcq_option_button.pack(side=tk.LEFT)
 
             # Add a label to indicate what the checkboxes do
-            self.mcq_checkbox_label = tk.Label(self.mcq_options_frame, text="Check for correct answer(s):", anchor='w', font=("Arial", 9, "italic"))
+            self.mcq_checkbox_label = ttk.Label(self.mcq_options_frame, text="Check for correct answer(s):", anchor='w', font=("Arial", 9, "italic"))
             self.mcq_checkbox_label.pack(side=tk.TOP, anchor='w', pady=(0,2))
 
-
-
             for _ in range(4):
-                add_mcq_option_entry()
+                self._add_mcq_option_entry()
             
             debug_logger.debug("Multiple choice options input field initialized.")
 ##End Multiple Choice Question UI
-            self.label_short_answer_correct = tk.Label(self.root, text="Enter Correct Short Answer:", anchor='e')
-            self.label_short_answer_correct.grid(row=8, column=0, padx=10, pady=5, sticky='e')
-            self.entry_short_answer_correct = tk.Entry(self.root, width=50)
-            self.entry_short_answer_correct.grid(row=8, column=1, padx=10, pady=5)
+            self.label_short_answer_correct = ttk.Label(self.details_frame, text="Enter Correct Short Answer:", anchor='e')
+            self.label_short_answer_correct.grid(row=9, column=0, padx=10, pady=5, sticky='e')
+            self.entry_short_answer_correct = ttk.Entry(self.details_frame, width=50)
+            self.entry_short_answer_correct.grid(row=9, column=1, padx=10, pady=5)
             Tooltip(self.entry_short_answer_correct, "Enter the correct answer for the short answer question.\n\nShort Answer questions are very sensitive to spelling and punctuation. \nBe sure to enter the correct answer EXACTLY as you want it to be entered by students.\n\nWildcards are supported: you can replace a character with an asterisk * to act as a placeholder for any possible character that could be used. \nThis can let you account for alternative spellings.\n\nIf the question doesn't have a definitive answer, you should use the Essay question type instead. \nEssay questions are open-ended and give the student a blank text box to write in.")
             debug_logger.debug("Short answer input field initialized.")
-            self.label_tf_answer = tk.Label(self.root, text="Select True/False:", anchor='e')
-            self.label_tf_answer.grid(row=9, column=0, padx=10, pady=5, sticky='e')
+            self.label_tf_answer = ttk.Label(self.details_frame, text="Select True/False:", anchor='e')
+            self.label_tf_answer.grid(row=10, column=0, padx=10, pady=5, sticky='e')
             self.tf_var = tk.StringVar(value="True")
-            self.radio_true = tk.Radiobutton(self.root, text="True", variable=self.tf_var, value="True")
-            self.radio_true.grid(row=9, column=1, sticky='w')
-            self.radio_false = tk.Radiobutton(self.root, text="False", variable=self.tf_var, value="False")
-            self.radio_false.grid(row=9, column=1, sticky='e')
+            self.radio_true = ttk.Radiobutton(self.details_frame, text="True", variable=self.tf_var, value="True")
+            self.radio_true.grid(row=10, column=1, sticky='w')
+            self.radio_false = ttk.Radiobutton(self.details_frame, text="False", variable=self.tf_var, value="False")
+            self.radio_false.grid(row=10, column=1, sticky='e')
             Tooltip(self.radio_true, "Select if the answer is True.")
             Tooltip(self.radio_false, "Select if the answer is False.")
             debug_logger.debug("True/False radio buttons initialized.")
-            self.button_cloze_editor = tk.Button(self.root, text="Open Cloze Editor", command=self.cloze_editor)
-            self.button_cloze_editor.grid(row=4, column=1, padx=10, pady=5, columnspan=2, sticky='we')
-            self.button_add_question = tk.Button(self.root, text="Add Question", command=self.add_question)
-            self.button_add_question.grid(row=11, column=1, padx=10, pady=5, sticky='nesw')
-            Tooltip(self.button_add_question, "Click to add the current question to your question bank.")
-            debug_logger.debug("Add question button initialized.")
-            self.button_edit_question = tk.Button(self.root, text="Edit Question", command=self.edit_question, state=tk.DISABLED)
-            self.button_edit_question.grid(row=11, column=0, padx=5, pady=5, sticky='nesw')
-            Tooltip(self.button_edit_question, "Select a question from the list below. Then, use this button to edit the selected question.")
-            debug_logger.debug("Edit question button initialized.")
-            self.button_delete_question = tk.Button(self.root, text="Delete Question(s)", command=self.delete_selected_questions)
-            self.button_delete_question.grid(row=11, column=2, padx=5, pady=5, sticky='nesw')
-            Tooltip(self.button_delete_question, "Click to delete the selected questions from the list.")
-            debug_logger.debug("Delete question button initialized.")
-            self.listbox_questions = tk.Listbox(self.root, selectmode=tk.EXTENDED)
-            self.listbox_questions.grid(row=12, column=0, columnspan=3, padx=10, pady=10, sticky='nsew')
-            self.listbox_questions.bind('<<ListboxSelect>>', self.on_question_select)
-            self.root.grid_rowconfigure(12, weight=1)
-            self.root.grid_columnconfigure(0, weight=1)
-            self.root.grid_columnconfigure(1, weight=1)
-            self.root.grid_columnconfigure(2, weight=1)
-            debug_logger.debug("Question listbox initialized.")
-            self.button_save_xml = tk.Button(self.root, text="Save as XML", command=self.save_as_xml)
-            self.button_save_xml.grid(row=13, column=0, columnspan=3, pady=5)
-            Tooltip(self.button_save_xml, "Click to save all the questions as an XML file.")
-            debug_logger.debug("Save as XML button initialized.")
+            self.button_cloze_editor = ttk.Button(self.details_frame, text="Open Cloze Editor", command=self.cloze_editor)
+            self.button_cloze_editor.grid(row=5, column=1, padx=10, pady=5, columnspan=2, sticky='we')
+            
+            # --- Action Buttons ---
+            button_frame = ttk.Frame(self.details_frame)
+            button_frame.grid(row=11, column=0, columnspan=3, sticky="ew", pady=(15, 0), padx=10)
+            button_frame.columnconfigure(0, weight=1)
+            button_frame.columnconfigure(1, weight=1)
+            button_frame.columnconfigure(2, weight=1)
+
+            self.button_add_question = ttk.Button(button_frame, text="Add Question", command=self.add_question)
+            self.button_add_question.grid(row=0, column=0, columnspan=3, sticky="ew", padx=(0, 2))
+            Tooltip(self.button_add_question, "Add the current question to the list or update the selected one.")
+
+            self.button_save_xml = ttk.Button(button_frame, text="Save as XML", command=self.save_as_xml)
+            self.button_save_xml.grid(row=1, column=0, columnspan=4, pady=(5,0), sticky='ew')
+            Tooltip(self.button_save_xml, "Click to save all the questions in the list as a Moodle XML file.")
+
             self.update_ui_for_question_type("Multiple Choice")
             debug_logger.debug("UI finished initializing. Setting initial question type.")
         except Exception as e:
             logging.error("Error setting up the user interface", exc_info=True)
             debug_logger.debug("UI Error. See error_log.txt for details.")
-
 
 ####################################################################################################################################
 ## FUNCTIONALITY
@@ -1088,22 +1114,22 @@ class questionBuilder:
             self.radio_true.grid_remove()
             self.radio_false.grid_remove()
             if question_type == "Multiple Choice":
-                self.label_mcq_options.grid()
-                self.mcq_options_frame.grid()
+                self.label_mcq_options.grid(row=7, column=0, padx=10, pady=5, sticky='ne')
+                self.mcq_options_frame.grid(row=7, column=1, padx=10, pady=5, columnspan=2, sticky='we')
                 debug_logger.debug("QuestionType Multiple Choice selected.")
             elif question_type == "True/False":
-                self.label_tf_answer.grid()
-                self.radio_true.grid()
-                self.radio_false.grid()
+                self.label_tf_answer.grid(row=10, column=0, padx=10, pady=5, sticky='e')
+                self.radio_true.grid(row=10, column=1, sticky='w')
+                self.radio_false.grid(row=10, column=1, sticky='e')
                 debug_logger.debug("QuestionType True/False selected.")
             elif question_type == "Short Answer":
-                self.label_short_answer_correct.grid()
-                self.entry_short_answer_correct.grid()
+                self.label_short_answer_correct.grid(row=9, column=0, padx=10, pady=5, sticky='e')
+                self.entry_short_answer_correct.grid(row=9, column=1, padx=10, pady=5)
                 debug_logger.debug("QuestionType Short Answer selected.")
             elif question_type == "Essay":
                 debug_logger.debug("QuestionType Essay selected.")
             elif question_type == "Cloze":
-                self.button_cloze_editor.grid()
+                self.button_cloze_editor.grid(row=5, column=1, padx=10, pady=5, columnspan=2, sticky='we')
                 debug_logger.debug("QuestionType Cloze selected.")
         except Exception as e:
             logging.error("Error updating UI for question type", exc_info=True)
@@ -1182,6 +1208,7 @@ class questionBuilder:
                 self.questions[self.edit_index] = question
                 self.edit_mode = False
                 self.edit_index = None
+                self.button_add_question.config(text="Add Question")
                 self.button_delete_question.config(state=tk.NORMAL)
             else:
                 self.questions.append(question)
@@ -1196,23 +1223,32 @@ class questionBuilder:
             self.entry_question_text.delete("1.0", tk.END)
             self.entry_points.delete(0, tk.END)
             self.entry_points.insert(0, "1")
-            # Remove all child widgets from mcq_options_frame to clear old entries and checkboxes
+            
+            # --- Rebuild MCQ Frame ---
+            # Destroy old widgets
             for child in self.mcq_options_frame.winfo_children():
                 child.destroy()
             self.mcq_option_entries.clear()
+
+            # Re-create buttons
+            buttons_frame = ttk.Frame(self.mcq_options_frame)
+            buttons_frame.pack(side=tk.TOP, fill='x', pady=(0, 2))
+            add_button = ttk.Button(buttons_frame, text="Add Choice", command=self._add_mcq_option_entry)
+            add_button.pack(side=tk.LEFT, padx=(0, 5))
+            remove_button = ttk.Button(buttons_frame, text="Remove Choice", command=self._remove_last_mcq_option_entry)
+            remove_button.pack(side=tk.LEFT)
+            
+            # Re-create label
+            ttk.Label(self.mcq_options_frame, text="Check for correct answer(s):", anchor='w', font=("Arial", 9, "italic")).pack(side=tk.TOP, anchor='w', pady=(0,2))
+
+            # Re-create initial 4 entries
             for _ in range(4):
-                # Create entry and checkbox together for proper alignment
-                frame = tk.Frame(self.mcq_options_frame)
-                frame.pack(side=tk.TOP, pady=2, fill='x')
-                entry = tk.Entry(frame, width=40)
-                entry.pack(side=tk.LEFT, fill='x', expand=True)
-                var = tk.BooleanVar(value=False)
-                checkbox = tk.Checkbutton(frame, variable=var)
-                checkbox.pack(side=tk.LEFT, padx=5)
-                self.mcq_option_entries.append((entry, var))
+                self._add_mcq_option_entry()
+
             self.entry_short_answer_correct.delete(0, tk.END)
             self.edit_mode = False
             self.edit_index = None
+            self.button_add_question.config(text="Add Question")
             debug_logger.debug("Cleared all input fields.")
         except Exception as e:
             logging.error("Error clearing entries", exc_info=True)
@@ -1230,8 +1266,14 @@ class questionBuilder:
     def update_question_list(self):
         try:
             self.listbox_questions.delete(0, tk.END)
+            type_map = {
+                "Multiple Choice": "Multichoice",
+                "True/False": "T/F",
+                "Short Answer": "ShortAns",
+            }
             for question in self.questions:
-                display_text = f"{question['type']}: {question['name']} - {question['text']} (Points: {question['points']})"
+                display_type = type_map.get(question['type'], question['type'])
+                display_text = f"{display_type}: {question['name']} - {question['text']} (Points: {question['points']})"
                 self.listbox_questions.insert(tk.END, display_text)
             self.sync_loaded_questions()
         except Exception as e:
@@ -1254,6 +1296,8 @@ class questionBuilder:
     def edit_question(self):
         try:
             selected_indices = list(self.listbox_questions.curselection())
+            if not selected_indices:
+                return
             if len(selected_indices) != 1:
                 messagebox.showwarning("Edit Error", "Please select exactly one question to edit.")
                 return
@@ -1272,14 +1316,26 @@ class questionBuilder:
                 for child in self.mcq_options_frame.winfo_children():
                     child.destroy()
                 self.mcq_option_entries.clear()
+
+                # Re-create the buttons
+                buttons_frame = ttk.Frame(self.mcq_options_frame)
+                buttons_frame.pack(side=tk.TOP, fill='x', pady=(0, 2))
+                add_button = ttk.Button(buttons_frame, text="Add Choice", command=self._add_mcq_option_entry)
+                add_button.pack(side=tk.LEFT, padx=(0, 5))
+                remove_button = ttk.Button(buttons_frame, text="Remove Choice", command=self._remove_last_mcq_option_entry)
+                remove_button.pack(side=tk.LEFT)
+                
+                # Re-create the label
+                ttk.Label(self.mcq_options_frame, text="Check for correct answer(s):", anchor='w', font=("Arial", 9, "italic")).pack(side=tk.TOP, anchor='w', pady=(0,2))
+
                 for idx, option in enumerate(question['options']):
-                    frame = tk.Frame(self.mcq_options_frame)
+                    frame = ttk.Frame(self.mcq_options_frame)
                     frame.pack(side=tk.TOP, pady=2, fill='x')
-                    entry = tk.Entry(frame, width=40)
+                    entry = ttk.Entry(frame, width=40)
                     entry.insert(0, option)
                     entry.pack(side=tk.LEFT, fill='x', expand=True)
                     var = tk.BooleanVar(value=(idx+1 in question['correct']))
-                    checkbox = tk.Checkbutton(frame, variable=var)
+                    checkbox = ttk.Checkbutton(frame, variable=var)
                     checkbox.pack(side=tk.LEFT, padx=5)
                     self.mcq_option_entries.append((entry, var))
             elif question['type'] == "True/False":
@@ -1289,6 +1345,7 @@ class questionBuilder:
                 self.entry_short_answer_correct.insert(0, question['correct_answer'])
             self.edit_mode = True
             self.edit_index = index
+            self.button_add_question.config(text="Update Question")
             self.button_delete_question.config(state=tk.DISABLED)
         except Exception as e:
             logging.error("Error editing question", exc_info=True)
@@ -1297,6 +1354,128 @@ class questionBuilder:
 ####################################################################################################################################
 ## Saving and Exporting the XML
 ####################################################################################################################################
+    def _add_mcq_option_entry(self, option_text="", checked=False):
+        frame = ttk.Frame(self.mcq_options_frame)
+        frame.pack(side=tk.TOP, pady=2, fill='x')
+        entry = ttk.Entry(frame, width=40)
+        entry.pack(side=tk.LEFT, fill='x', expand=True)
+        if option_text:
+            entry.insert(0, option_text)
+        var = tk.BooleanVar(value=checked)
+        checkbox = ttk.Checkbutton(frame, variable=var)
+        checkbox.pack(side=tk.LEFT, padx=5)
+        self.mcq_option_entries.append((entry, var))
+
+    def _remove_last_mcq_option_entry(self):
+        if self.mcq_option_entries:
+            entry, var = self.mcq_option_entries.pop()
+            entry.master.destroy()
+
+    def add_mcq_option_entry_in_edit(self):
+        frame = ttk.Frame(self.mcq_options_frame)
+        frame.pack(side=tk.TOP, pady=2, fill='x')
+        entry = ttk.Entry(frame, width=40)
+        entry.pack(side=tk.LEFT, fill='x', expand=True)
+        var = tk.BooleanVar(value=False)
+        checkbox = ttk.Checkbutton(frame, variable=var)
+        checkbox.pack(side=tk.LEFT, padx=5)
+        self.mcq_option_entries.append((entry, var))
+
+    def load_xml_file(self):
+        try:
+            file_path = filedialog.askopenfilename(
+                title="Select a Moodle XML file",
+                filetypes=[("XML files", "*.xml")]
+            )
+            if not file_path:
+                return
+
+            tree = ET.parse(file_path)
+            root = tree.getroot()
+
+            if root.tag != 'quiz':
+                messagebox.showerror("Load Error", "Invalid Moodle XML file. The root element must be <quiz>.")
+                return
+
+            if self.questions:
+                if not messagebox.askyesno("Confirm", "This will replace all current questions. Are you sure?"):
+                    return
+
+            loaded_questions = []
+            category_text = ""
+
+            for q_node in root.findall('question'):
+                q_type_str = q_node.get('type')
+
+                q_data = {}
+
+                name_node = q_node.find('name/text')
+                q_data['name'] = name_node.text.strip() if name_node is not None else "Untitled"
+
+                text_node = q_node.find('questiontext/text')
+                q_data['text'] = text_node.text.strip() if text_node is not None else ""
+
+                points_node = q_node.find('defaultgrade')
+                q_data['points'] = float(points_node.text) if points_node is not None else 1.0
+
+                if q_type_str == 'category':
+                    cat_text_node = q_node.find('category/text')
+                    if cat_text_node is not None:
+                        category_text = cat_text_node.text.replace('$course$/', '').strip()
+                    continue
+
+                elif q_type_str == 'multichoice':
+                    q_data['type'] = "Multiple Choice"
+                    options = []
+                    correct = []
+                    for i, ans_node in enumerate(q_node.findall('answer'), start=1):
+                        ans_text = ans_node.find('text').text or ""
+                        options.append(ans_text.strip())
+                        if ans_node.get('fraction') == '100':
+                            correct.append(i)
+                    q_data['options'] = options
+                    q_data['correct'] = correct
+
+                elif q_type_str == 'truefalse':
+                    q_data['type'] = "True/False"
+                    for ans_node in q_node.findall('answer'):
+                        if ans_node.get('fraction') == '100':
+                            q_data['answer'] = "True" if ans_node.find('text').text.lower() == 'true' else "False"
+                            break
+
+                elif q_type_str == 'shortanswer':
+                    q_data['type'] = "Short Answer"
+                    ans_node = q_node.find('answer')
+                    if ans_node is not None and ans_node.get('fraction') == '100':
+                                               q_data['correct_answer'] = ans_node.find('text').text.strip()
+
+                elif q_type_str == 'essay':
+                    q_data['type'] = "Essay"
+                
+                elif q_type_str == 'cloze':
+                    q_data['type'] = "Cloze"
+
+                else:
+                    continue # Skip unknown question types
+
+                loaded_questions.append(q_data)
+
+            self.questions = loaded_questions
+            self.entry_category.delete(0, tk.END)
+            self.entry_category.insert(0, category_text)
+           
+            self.update_question_list()
+            self.clear_entries()
+            messagebox.showinfo("Load Successful", f"Successfully loaded {len(loaded_questions)} questions from {os.path.basename(file_path)}.")
+            debug_logger.debug(f"Loaded {len(loaded_questions)} questions from {file_path}")
+
+        except ET.ParseError as e:
+            messagebox.showerror("Load Error", f"Failed to parse XML file: {e}")
+            logging.error("Error parsing XML file on load", exc_info=True)
+        except Exception as e:
+            messagebox.showerror("Load Error", f"An unexpected error occurred: {e}")
+            logging.error("Error loading XML file", exc_info=True)
+
     def save_as_xml(self):
         try:
             if not self.questions:
@@ -1333,7 +1512,7 @@ class questionBuilder:
                 elif question['type'] == "Short Answer":
                     xml_content += f"  <question type=\"shortanswer\">\n    <name>\n      <text>{question['name']}</text>\n    </name>\n    <questiontext format=\"html\">\n      <text><![CDATA[{question['text']}]]></text>\n    </questiontext>\n    <defaultgrade>{question['points']}</defaultgrade>\n    <answer fraction=\"100\">\n      <text>{question['correct_answer']}</text>\n    </answer>\n  </question>\n"
                 elif question['type'] == "Essay":
-                    xml_content += f"  <question type=\"essay\">\n    <name>\n      <text>{question['name']}</text>\n    </name>\n    <questiontext format=\"html\">\n      <text><![CDATA[{question['text']}]]></text>\n    </questiontext>\n    <defaultgrade>{question['points']}</defaultgrade>\n  </question>\n"
+                    xml_content += f"   <question type=\"essay\">\n    <name>\n      <text>{question['name']}</text>\n    </name>\n    <questiontext format=\"html\">\n      <text><![CDATA[{question['text']}]]></text>\n    </questiontext>\n    <defaultgrade>{question['points']}</defaultgrade>\n  </question>\n"
                 elif question['type'] == "Cloze":
                     xml_content += f" <question type=\"cloze\">\n    <name>\n      <text>{question['name']}</text>\n    </name>\n    <questiontext format=\"html\">\n      <text><![CDATA[{question['text']}]]></text>\n    </questiontext>\n    <defaultgrade>{question['points']}</defaultgrade>\n  </question>\n"
             xml_content += "</quiz>"
@@ -1448,7 +1627,7 @@ class questionBuilder:
             debug_logger.debug("Cloze editor window opened.")
         except Exception as e:
             logging.error("Error opening Cloze editor", exc_info=True)
-#endregion
+
 class quizBuilder:
     def __init__(self, parent):
         self.root = parent
@@ -1461,15 +1640,16 @@ class quizBuilder:
         tk.Label(self.root, text="Quiz Description").grid(row=1, column=0, padx=10, pady=10, sticky='e')
         self.quiz_description_entry = tk.Text(self.root, width=50, height=4)
         self.quiz_description_entry.grid(row=1, column=1, padx=10, pady=10, sticky='we')
-        tk.Label(self.root, text="Display Description on Course Page").grid(row=2, column=0, padx=10, pady=10, sticky='w')
+        tk.Label(self.root, text="Display Description on Course Page").grid(row=2, column=0, padx=10, pady=10, sticky='we')
         # Create a BooleanVar to hold the state of the checkbox
         self.display_description_var = tk.BooleanVar()
         self.display_description_boolean = tk.Checkbutton(self.root, variable=self.display_description_var)
         self.display_description_boolean.grid(row=2, column=1, padx=10, pady=10, sticky='w')
         # The line below was creating a second, unused checkbox. It has been removed.
         tk.Label(self.root, text="Point Value").grid(row=3, column=0, padx=10, pady=10, sticky='e')
-        # Store the Entry widget in an instance variable to access its value later
-        self.point_value_entry = tk.Entry(self.root, width=10)
+        self.point_value_var = tk.StringVar(value="100")
+        self.point_value_entry = tk.Entry(self.root, width=10, textvariable=self.point_value_var, validate="key")
+        self.point_value_entry['validatecommand'] = (self.root.register(lambda v: v.isdigit() or v == ""), '%P')
         self.point_value_entry.grid(row=3, column=1, padx=10, pady=10, sticky="w")
         #add a date picker and two dropdowns for hours and minutes
         tk.Label(self.root, text="Open the quiz").grid(row=4, column=0, padx=10, pady=10, sticky='e')
@@ -1508,12 +1688,14 @@ class quizBuilder:
         minute_close_menu.state(["readonly"])
         # This AM/PM menu was not being stored or used, so it's removed for now.
         self.time_limit_label = tk.Label(self.root, text="Time limit").grid(row=6, column=0, padx=10, pady=10, sticky='e')
-        # Store the Entry widget in an instance variable
-        self.time_limit_entry = tk.Entry(self.root, width=4)
+        self.time_limit_var = tk.StringVar(value="0")
+        self.time_limit_entry = tk.Entry(self.root, width=4, textvariable=self.time_limit_var, validate="key")
+        self.time_limit_entry['validatecommand'] = (self.root.register(lambda v: v.isdigit() or v == ""), '%P')
         self.time_limit_entry.grid(row=6, column=1, padx=10, pady=10, sticky="w")
         self.attempts_allowed_label = tk.Label(self.root, text="Attempts allowed").grid(row=7, column=0, padx=10, pady=10, sticky='e')
-        # Store the Entry widget in an instance variable
-        self.attempts_allowed_entry = tk.Entry(self.root, width=4)
+        self.attempts_allowed_var = tk.StringVar(value="1")
+        self.attempts_allowed_entry = tk.Entry(self.root, width=4, textvariable=self.attempts_allowed_var, validate="key")
+        self.attempts_allowed_entry['validatecommand'] = (self.root.register(lambda v: v.isdigit() or v == ""), '%P')
         self.attempts_allowed_entry.grid(row=7, column=1, padx=10, pady=10, sticky="w")
         # Label + help for loaded questions
         self.loaded_questions_label_frame = tk.Frame(self.root)
@@ -1527,24 +1709,28 @@ class quizBuilder:
             "This list stores quizzes that are ready for export.\n\nUse the Add button to capture the current quiz setup, then export all saved quizzes at once.",
         )
         # listbox to show saved quizzes
+        self.root.grid_rowconfigure(10, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_columnconfigure(1, weight=1)
         self.listbox_quizzes = tk.Listbox(self.root)
-        self.listbox_quizzes.grid(row=9, column=0, columnspan=2, padx=10, pady=6, sticky='nsew')
-        self.root.grid_rowconfigure(9, weight=1)
+        self.listbox_quizzes.grid(row=10, column=0, columnspan=3, padx=10, pady=6, sticky='nsew')
         # storage for quizzes staged for export and the latest question set from the builder
         self.saved_quizzes: List[Dict[str, Any]] = []
         self.current_question_set: List[Dict[str, Any]] = []
 
-        tk.Button(self.root, text="Import Question XML File", command=self.import_xml)\
-            .grid(row=10, column=0, padx=10, pady=10, sticky='we')
+        self.import_xml_btn = tk.Button(self.root, text="Import Question XML File", state=tk.DISABLED)
+        self.import_xml_btn.grid(row=9, column=0, padx=10, pady=10, sticky='we')
 
-        tk.Button(self.root, text="Add Quiz to Export List", command=self.add_quiz_to_export_list)\
-            .grid(row=10, column=1, padx=10, pady=10, sticky='we')
+
+        # Save Quiz button above listbox
+        self.save_quiz_btn = tk.Button(self.root, text="Save Quiz", command=self.add_quiz_to_export_list)
+        self.save_quiz_btn.grid(row=8, column=0, columnspan=2, padx=10, pady=6, sticky='we')
 
         tk.Button(self.root, text="Export Quizzes (.mbz)", command=self.export_quiz_mbz)\
-            .grid(row=11, column=0, columnspan=2, padx=10, pady=10, sticky='we')
+            .grid(row=11, column=0, columnspan=2, padx=10, pady=10, sticky='')
 
         tk.Button(self.root, text="Debug: Show Variables", command=self.show_debug_info)\
-            .grid(row=12, column=0, columnspan=2, padx=10, pady=5, sticky='we')
+            .grid(row=9, column=1, padx=10, pady=5, sticky='we')
 
         pass
 
@@ -1628,104 +1814,8 @@ class quizBuilder:
             logging.error("Error in show_debug_info", exc_info=True)
 
     def import_xml(self):
-        file_path = filedialog.askopenfilename(filetypes=[("XML files", "*.xml")])
-        if not file_path:
-            return
-        try:
-            tree = ET.parse(file_path)
-            root = tree.getroot()
-            imported_questions = []
-            for qelem in root.findall('question'):
-                q_type = qelem.get('type', '').lower()
-                # name/text and questiontext/text
-                name = qelem.findtext('name/text') or ""
-                text = qelem.findtext('questiontext/text') or ""
-                points = qelem.findtext('defaultgrade') or ""
-                try:
-                    points = float(points) if points != "" else 1.0
-                except Exception:
-                    points = 1.0
-                # Map XML type to friendly type and extract details
-                if q_type == 'multichoice' or q_type == 'multichoice':
-                    options = []
-                    correct = []
-                    for idx, ans in enumerate(qelem.findall('answer'), start=1):
-                        ans_text = ans.findtext('text') or ""
-                        fraction = ans.get('fraction') or ans.findtext('fraction') or ""
-                        options.append(ans_text)
-                        try:
-                            if str(fraction).strip() == "100":
-                                correct.append(idx)
-                        except Exception:
-                            pass
-                    question = {
-                        'type': "Multiple Choice",
-                        'name': name,
-                        'text': text,
-                        'options': options,
-                        'correct': correct,
-                        'points': points
-                    }
-                elif q_type == 'truefalse':
-                    # find which answer has fraction 100 and use its text ('true'/'false')
-                    answer_true = None
-                    for ans in qelem.findall('answer'):
-                        fraction = ans.get('fraction') or ans.findtext('fraction') or ""
-                        if str(fraction).strip() == "100":
-                            answer_true = (ans.findtext('text') or "").strip()
-                            break
-                    tf_value = "True" if answer_true and answer_true.lower() == 'true' else "False"
-                    question = {
-                        'type': "True/False",
-                        'name': name,
-                        'text': text,
-                        'answer': tf_value,
-                        'points': points
-                    }
-                elif q_type == 'shortanswer':
-                    correct_answer = ""
-                    ans = qelem.find('answer')
-                    if ans is not None:
-                        correct_answer = ans.findtext('text') or ""
-                    question = {
-                        'type': "Short Answer",
-                        'name': name,
-                        'text': text,
-                        'correct_answer': correct_answer,
-                        'points': points
-                    }
-                elif q_type == 'essay':
-                    question = {
-                        'type': "Essay",
-                        'name': name,
-                        'text': text,
-                        'points': points
-                    }
-                elif q_type == 'cloze':
-                    question = {
-                        'type': "Cloze",
-                        'name': name,
-                        'text': text,
-                        'points': points
-                    }
-                elif q_type == 'category':
-                    # categories are metadata; skip adding as a question but could be applied to the quiz if desired
-                    continue
-                else:
-                    # Unknown type: include basic fields
-                    question = {
-                        'type': q_type or "Unknown",
-                        'name': name,
-                        'text': text,
-                        'points': points
-                    }
-                imported_questions.append(question)
-            qb = self.get_question_builder()
-            if qb is not None:
-                qb.replace_questions(imported_questions)
-            self.current_question_set = [copy.deepcopy(question) for question in imported_questions]
-        except Exception as e:
-            messagebox.showerror("Import Error", f"Failed to import XML: {e}")
+        # Functionality disabled
+        pass
 
     def export_quiz_mbz(self):
         try:
@@ -1925,7 +2015,7 @@ class forumBuilder:
             "close_am_pm": self.am_pm_close_var.get(),
         }
         return data
-## MAIN APPLICATION LOOP
+
 if __name__ == "__main__":
     try:
         root = tk.Tk()
