@@ -16,8 +16,31 @@ from tkinter import messagebox, filedialog, ttk, Text
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Tuple
 # import DateEntry used in quizBuilder; Calendar is optional if you need it elsewhere
-from tkcalendar import DateEntry
+
 basedir = os.path.dirname(__file__)
+import subprocess
+import sys
+
+def install_and_import(package):
+    try:
+        __import__(package)
+    except ImportError:
+        print(f"Package '{package}' not found. Installing...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        print(f"Installed '{package}' successfully.")
+        __import__(package)
+
+# List your required packages here
+required_packages = ['tkcalendar']
+
+for package in required_packages:
+    install_and_import(package)
+
+# Now your main script logic can safely use the dependencies
+from tkcalendar import DateEntry
+
+print("All dependencies are installed. Running the script...")
+# your script logic here
 
 #-----------------------------
 #endregion Imports
